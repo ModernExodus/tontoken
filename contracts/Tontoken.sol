@@ -2,20 +2,25 @@
 pragma solidity 0.8.4;
 
 import "./IERC20.sol";
-import "./SafeMath.sol";
 
 contract Tontoken is ERC20 {
-    using SafeMath for uint256;
-
-    address private contractDeployer;
+    address private contractAdmin;
     uint256 private _totalSupply;
+    uint256 private exchangeRate; // num wei per bork
+    uint16 private borkTaxRate; // percent of each transaction to be held by contract
     mapping(address => uint256) private balances;
     mapping(address => mapping(address => uint256)) private allowed;
 
+    event WeiDonated(address indexed from, uint256 amount);
+    event WeiWithdrawn(address indexed to, uint256 amount);
+    event BorksTaxed(address indexed from, address indexed to, uint256 amountBeforeTax, uint256 amountAfterTax, uint256 taxesPaid);
+
     constructor() {
-        //for testing
-        _totalSupply = 1000;
-        contractDeployer = msg.sender;
+        _totalSupply = 1000000000000; // initial supply of 1000000 Tontokens
+        exchangeRate = 1000000; // 1000000 wei per bork (1000000 borks per Tontoken -> 1 szabo = 1 Tontoken)
+        borkTaxRate = 100; // ~1-2% depending on the size of trx
+        balances[msg.sender] = _totalSupply;
+        contractAdmin = msg.sender;
     }
 
     function name() override public pure returns (string memory) {
@@ -41,7 +46,9 @@ contract Tontoken is ERC20 {
     function transfer(address _to, uint256 _value) override public returns (bool) {
         require(balances[msg.sender] >= _value);
         require(_to != address(0));
-        executeTransfer(msg.sender, _to, _value);
+        (uint256 transferAmt, uint256 tax) = applyBorkTax(_value);
+        emit BorksTaxed(msg.sender, _to, _value, transferAmt, tax);
+        executeTransfer(msg.sender, _to, transferAmt);
         return true;
     }
     
@@ -50,8 +57,10 @@ contract Tontoken is ERC20 {
         require(allowed[msg.sender][_from] >= _value);
         require(balances[_from] >= _value);
         require(_to != address(0));
-        allowed[msg.sender][_from] = allowed[msg.sender][_from].subtract(_value);
-        executeTransfer(_from, _to, _value);
+        allowed[msg.sender][_from] = allowed[msg.sender][_from] - _value;
+        (uint256 transferAmt, uint256 tax) = applyBorkTax(_value);
+        emit BorksTaxed(_from, _to, _value, transferAmt, tax);
+        executeTransfer(_from, _to, transferAmt);
         return true;
     }
     
@@ -71,8 +80,66 @@ contract Tontoken is ERC20 {
     }
 
     function executeTransfer(address from, address to, uint256 value) private {
-        balances[from] = balances[from].subtract(value);
-        balances[to] = balances[to].add(value);
+        if (from != address(0)) {
+            // BUG -> sender doesn't have to send full amount b/c taxed value being subtracted
+            balances[from] = balances[from] - value;
+        }
+        balances[to] = balances[to] + value;
         emit Transfer(from, to, value);
+    }
+
+    function applyBorkTax(uint256 value) private returns (uint256 valueAfterTax, uint256 tax) {
+        uint256 taxed;
+        if (value < borkTaxRate) {
+            taxed = 1;
+        } else {
+            taxed = value / borkTaxRate;
+        }
+        balances[address(this)] += taxed;
+        return (value - taxed, taxed);
+    }
+
+    function collectedTaxes() public view returns (uint256) {
+        return balanceOf(address(this));
+    }
+
+    function weiToBorks() public payable {
+        uint256 numBorks = convertToBorks(msg.value);
+        _totalSupply += numBorks;
+        executeTransfer(address(0), msg.sender, numBorks);
+        emit WeiDonated(msg.sender, msg.value);
+    }
+
+    function donateBorks(uint256 value) public {
+        require(value != 0);
+        require(balances[msg.sender] >= value);
+        executeTransfer(msg.sender, address(this), value);
+    }
+
+    function withdrawBorks() public {
+        require(msg.sender == contractAdmin);
+        require(balanceOf(address(this)) > 0);
+        executeTransfer(address(this), contractAdmin, balanceOf(address(this)));
+    }
+    
+    function withdrawWeiToDonate() public {
+        require(msg.sender == contractAdmin);
+        require(address(this).balance > 0 wei);
+        address payable donater = payable(msg.sender);
+        uint256 weiToWithdraw = address(this).balance;
+        donater.transfer(address(this).balance);
+        emit WeiWithdrawn(contractAdmin, weiToWithdraw);
+    }
+
+    function adjustBorkTaxRate(uint16 rate) public {
+        require(msg.sender == contractAdmin);
+        require(rate > 0 && rate <= 1000);
+        borkTaxRate = rate;
+    }
+
+    // converts wei -> borks at current exchange rate
+    function convertToBorks(uint256 _wei) private view returns (uint256) {
+        require(_wei >= exchangeRate);
+        return _wei / exchangeRate;
     }
 }
