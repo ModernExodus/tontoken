@@ -16,7 +16,7 @@ contract Tontoken is ERC20 {
     event BorksTaxed(address indexed from, address indexed to, uint256 amountBeforeTax, uint256 amountAfterTax, uint256 taxesPaid);
 
     constructor() {
-        _totalSupply = 1000000000000; // initial supply of 1000000 Tontokens
+        _totalSupply = 1000000000000; // initial supply of 1000000 Tontokens (1 ETH)
         exchangeRate = 1000000; // 1000000 wei per bork (1000000 borks per Tontoken -> 1 szabo = 1 Tontoken)
         borkTaxRate = 100; // ~1-2% depending on the size of trx
         balances[msg.sender] = _totalSupply;
@@ -46,9 +46,7 @@ contract Tontoken is ERC20 {
     function transfer(address _to, uint256 _value) override public returns (bool) {
         require(balances[msg.sender] >= _value);
         require(_to != address(0));
-        (uint256 transferAmt, uint256 tax) = applyBorkTax(_value);
-        emit BorksTaxed(msg.sender, _to, _value, transferAmt, tax);
-        executeTransfer(msg.sender, _to, transferAmt);
+        executeTransfer(msg.sender, _to, _value);
         return true;
     }
     
@@ -57,10 +55,8 @@ contract Tontoken is ERC20 {
         require(allowed[msg.sender][_from] >= _value);
         require(balances[_from] >= _value);
         require(_to != address(0));
-        allowed[msg.sender][_from] = allowed[msg.sender][_from] - _value;
-        (uint256 transferAmt, uint256 tax) = applyBorkTax(_value);
-        emit BorksTaxed(_from, _to, _value, transferAmt, tax);
-        executeTransfer(_from, _to, transferAmt);
+        allowed[msg.sender][_from] -= _value;
+        executeTransfer(_from, _to, _value);
         return true;
     }
     
@@ -80,11 +76,17 @@ contract Tontoken is ERC20 {
     }
 
     function executeTransfer(address from, address to, uint256 value) private {
+        uint256 transferAmt;
+        uint256 tax;
         if (from != address(0)) {
-            // BUG -> sender doesn't have to send full amount b/c taxed value being subtracted
-            balances[from] = balances[from] - value;
+            // only apply bork tax on regular transactions that don't create Tontoken
+            (transferAmt, tax) = applyBorkTax(value);
+            emit BorksTaxed(from, to, value, transferAmt, tax);
+            balances[from] -= value;
+        } else {
+            transferAmt = value;
         }
-        balances[to] = balances[to] + value;
+        balances[to] += transferAmt;
         emit Transfer(from, to, value);
     }
 
@@ -125,7 +127,7 @@ contract Tontoken is ERC20 {
     function withdrawWeiToDonate() public {
         require(msg.sender == contractAdmin);
         require(address(this).balance > 0 wei);
-        address payable donater = payable(msg.sender);
+        address payable donater = payable(contractAdmin);
         uint256 weiToWithdraw = address(this).balance;
         donater.transfer(address(this).balance);
         emit WeiWithdrawn(contractAdmin, weiToWithdraw);
@@ -133,7 +135,7 @@ contract Tontoken is ERC20 {
 
     function adjustBorkTaxRate(uint16 rate) public {
         require(msg.sender == contractAdmin);
-        require(rate > 0 && rate <= 1000);
+        require(rate > 0 && rate <= 100);
         borkTaxRate = rate;
     }
 
