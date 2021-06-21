@@ -7,23 +7,22 @@ contract VotingSystem {
     
     // candidates
     mapping(address => uint128) internal votes;
-    address[] private candidates;
+    address[] internal candidates;
     
     // voters
     mapping(address => bool) internal voted;
-    address[] private voters;
+    address[] internal voters;
 
     // proposers
     mapping(address => bool) internal addedProposal;
-    address[] private proposers;
+    address[] internal proposers;
 
     VotingStatus internal currentStatus;
     enum VotingStatus { INACTIVE, PAUSE, ACTIVE }
     address internal latestWinner;
-    uint256 private numVotesHeld;
+    uint256 internal numVotesHeld;
 
     event VotingActive(uint256 votingSessionNumber);
-    event VotingPaused();
     event VotingInactive(address winner, uint128 numVotes);
     event VotingPostponed(bytes32 reason);
     event VoteUncontested(address winner);
@@ -34,7 +33,7 @@ contract VotingSystem {
     }
 
     // START -> voting is active
-    function startVoting() public {
+    function startVoting() internal {
         if (candidates.length != 0 && candidates.length > 1) {
             currentStatus = VotingStatus.ACTIVE;
             numVotesHeld++;
@@ -43,20 +42,29 @@ contract VotingSystem {
             numVotesHeld++;
             latestWinner = candidates[0];
             emit VoteUncontested(latestWinner);
-            resetVotingAddresses();
+            resetVotingState();
         } else {
             emit VotingPostponed("No candidates");
         }
     }
 
     // INACTIVE -> voting is over, winner is determined, and options are reset
-    function stopVoting() public returns (address winner) {
+    function stopVoting() internal returns (address winner) {
         require(currentStatus == VotingStatus.ACTIVE);
         currentStatus = VotingStatus.INACTIVE;
-        (address _winner, uint128 _numVotes) = determineWinner();
+        (address _winner, uint128 _numVotes, bool _tied) = determineWinner();
+        if (_winner == address(0)) {
+            emit VotingPostponed("No votes cast");
+            return address(0);
+        }
+        if (_tied) {
+            emit VotingPostponed("Voting resulted in tie");
+            resetVoteCount();
+            return address(0);
+        }
         emit VotingInactive(_winner, _numVotes);
         latestWinner = _winner;
-        resetVotingAddresses();
+        resetVotingState();
         return _winner;
     }
 
@@ -76,20 +84,30 @@ contract VotingSystem {
         emit VoteCounted(voter, vote);
     }
 
-    // still need to handle ties and no-vote situations
-    function determineWinner() private view returns (address winner, uint128 numVotes) {
+    // no-votes -> returns address(0), 0
+    // tie -> returns third bool true
+    function determineWinner() private view returns (address winner, uint128 numVotes, bool tie) {
         address currentLeader;
         uint128 currentMaxVotes;
+        uint32 winningIndex;
+        bool _tie;
         for (uint32 i = 0; i < candidates.length; i++) {
             if (votes[candidates[i]] > currentMaxVotes) {
                 currentLeader = candidates[i];
                 currentMaxVotes = votes[candidates[i]];
+                winningIndex = i;
             }
         }
-        return (currentLeader, currentMaxVotes);
+        for (uint32 i = 0; i < candidates.length; i++) {
+            if (i != winningIndex && votes[candidates[i]] == currentMaxVotes) {
+                _tie = true;
+                break;
+            }
+        }
+        return (currentLeader, currentMaxVotes, _tie);
     }
 
-    function resetVotingAddresses() private {
+    function resetVotingState() private {
         for (uint32 i = 0; i < candidates.length; i++) {
             delete votes[candidates[i]];
             delete isCandidate[candidates[i]];
@@ -104,5 +122,11 @@ contract VotingSystem {
             delete proposers[i];
         }
         delete proposers;
+    }
+
+    function resetVoteCount() private {
+        for (uint32 i = 0; i < candidates.length; i++) {
+            delete votes[candidates[i]];
+        }
     }
 }
