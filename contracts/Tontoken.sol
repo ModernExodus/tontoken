@@ -16,6 +16,9 @@ contract Tontoken is ERC20, VotingSystem {
     // fields to help with voting
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
+    mapping(address => uint256) private lockedBorks;
+    uint256 private lastVoteTimestamp;
+    uint256 private votingInterval; // voting interval in days
 
     event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
 
@@ -26,6 +29,8 @@ contract Tontoken is ERC20, VotingSystem {
         contractAdmin = msg.sender;
         minVoterThreshold = 10000000000; // at least 10,000 borks to vote
         minProposalThreshold = 50000000000; // at least 50,000 borks to propose
+        lastVoteTimestamp = block.timestamp;
+        votingInterval = 7;
     }
 
     function name() override public pure returns (string memory) {
@@ -49,16 +54,14 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function transfer(address _to, uint256 _value) override public returns (bool) {
-        require(balances[msg.sender] >= _value);
-        require(_to != address(0));
+        require(getSendableBalance(msg.sender) >= _value && _to != address(0));
         executeTransfer(msg.sender, _to, _value);
         return true;
     }
     
     function transferFrom(address _from, address _to, uint256 _value) override public returns (bool) {
-        require(allowed[msg.sender][_from] > 0);
         require(allowed[msg.sender][_from] >= _value);
-        require(balances[_from] >= _value);
+        require(getSendableBalance(_from) >= _value);
         require(_to != address(0));
         allowed[msg.sender][_from] -= _value;
         executeTransfer(_from, _to, _value);
@@ -90,6 +93,9 @@ contract Tontoken is ERC20, VotingSystem {
         balances[to] += value;
         emit Transfer(from, to, value);
         adjustTotalSupply(tax);
+        if (shouldVotingStart()) {
+            // start voting process
+        }
     }
 
     function applyBorkTax(uint256 value, address from, address to) private returns (uint256 tax) {
@@ -115,12 +121,34 @@ contract Tontoken is ERC20, VotingSystem {
 
     function enterVote(address vote) public {
         require(balanceOf(msg.sender) >= minVoterThreshold);
+        lockBorks(msg.sender, minVoterThreshold);
         super.voteForCandidate(vote, msg.sender);
     }
 
     function proposeBorkTaxRecipient(address recipient) public {
         require(balanceOf(msg.sender) >= minProposalThreshold);
+        lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);
+    }
+
+    function lockBorks(address owner, uint256 toLock) private {
+        lockedBorks[owner] += toLock;
+    }
+
+    function unlockBorks(address owner, uint256 toUnlock) private {
+        lockedBorks[owner] -= toUnlock;
+    }
+
+    function getSendableBalance(address owner) private view returns (uint256) {
+        if (lockedBorks[owner] >= balances[owner]) {
+            return 0;
+        }
+        return balances[owner];
+    }
+
+    // determines if 1 weeks has passed since last vote
+    function shouldVotingStart() private view returns (bool) {
+        return (block.timestamp - lastVoteTimestamp) * 1 seconds >= votingInterval * 1 days;
     }
 
     // function donateBorks(uint256 value) public {
