@@ -1,3 +1,5 @@
+const { convertHexToAscii, assertVmException } = require('./test-utils.js');
+
 const VotingSystem = artifacts.require('VotingSystemProxy');
 
 contract('Voting System', async accounts => {
@@ -147,19 +149,4 @@ contract('Voting System', async accounts => {
 
     // walk through an entire election process from start to finish
     it('should correctly orchestrate a simulated election');
-
-    function convertHexToAscii(hex) {
-        const nullMatcher = new RegExp('\u0000', 'g');
-        return web3.utils.hexToAscii(hex).replace(nullMatcher, '');
-    }
-
-    async function assertVmException(func, ...args) {
-        let vmException = false;
-        try {
-            await func(...args);
-        } catch {
-            vmException = true;
-        }
-        assert.ok(vmException);
-    }
 });
