@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
-pragma solidity 0.8.4;
+pragma solidity ^0.8.4;
 
 contract VotingSystem {
     // fields to help with donation distribution and voting

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
-pragma solidity 0.8.4;
+pragma solidity ^0.8.4;
 
 import "./IERC20.sol";
 import "./VotingSystem.sol";
@@ -14,11 +14,19 @@ contract Tontoken is ERC20, VotingSystem {
     mapping(address => mapping(address => uint256)) private allowed;
 
     // fields to help with voting
+    // struct with information about candidate
+    struct BorkTaxRecipient {
+        address addr;
+        bytes32 name; // optional
+        string description; // optional
+        string website; // optional
+    }
+    BorkTaxRecipient[] private potentialRecipients;
+
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
     mapping(address => uint256) private lockedBorks;
     uint256 private lastVoteTimestamp;
-    uint256 private votingInterval; // voting interval in days
 
     event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
 
@@ -30,7 +38,6 @@ contract Tontoken is ERC20, VotingSystem {
         minVoterThreshold = 10000000000; // at least 10,000 borks to vote
         minProposalThreshold = 50000000000; // at least 50,000 borks to propose
         lastVoteTimestamp = block.timestamp;
-        votingInterval = 7;
     }
 
     function name() override public pure returns (string memory) {
@@ -93,9 +100,6 @@ contract Tontoken is ERC20, VotingSystem {
         balances[to] += value;
         emit Transfer(from, to, value);
         adjustTotalSupply(tax);
-        if (shouldVotingStart()) {
-            // start voting process
-        }
     }
 
     function applyBorkTax(uint256 value, address from, address to) private returns (uint256 tax) {
@@ -131,6 +135,11 @@ contract Tontoken is ERC20, VotingSystem {
         super.addCandidate(recipient, msg.sender);
     }
 
+    function proposeBorkTaxRecipient(address recipient, bytes32 name, string memory description, string memory website) public {
+        proposeBorkTaxRecipient(recipient);
+        potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
+    }
+
     function lockBorks(address owner, uint256 toLock) private {
         lockedBorks[owner] += toLock;
     }
@@ -143,12 +152,15 @@ contract Tontoken is ERC20, VotingSystem {
         if (lockedBorks[owner] >= balances[owner]) {
             return 0;
         }
-        return balances[owner];
+        return balances[owner] - lockedBorks[owner];
     }
 
-    // determines if 1 weeks has passed since last vote
-    function shouldVotingStart() private view returns (bool) {
-        return (block.timestamp - lastVoteTimestamp) * 1 seconds >= votingInterval * 1 days;
+    function getVotingMinimum() public view returns (uint256) {
+        return minVoterThreshold;
+    }
+
+    function getProposalMinimum() public view returns (uint256) {
+        return minProposalThreshold;
     }
 
     // function donateBorks(uint256 value) public {
