@@ -56,6 +56,8 @@ contract('Tontoken', async accounts => {
         await assertVmException(token.transferFrom.sendTransaction, owner, accounts[5], 1100, { from: delegate });
     });
 
+    it('should not allow a delegated sender to send more than the balance of an address');
+
     it('should not allow an undelegated sender to send tokens from another account', async () => {
         const undelegated = accounts[2];
         await assertVmException(token.transferFrom.sendTransaction, accounts[0], accounts[3], 100, { from: undelegated });
@@ -76,6 +78,19 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(tokenDecimals, 6);
     });
 
-    // TODO when voting adjustments are working
-    it('should adjust the voting minimum if the median balance falls lower', async () => {});
+    it('should start voting if ~7 days worth of blocks have been mined');
+
+    it('should distribute the bork taxes to the uncontested winner if there was only 1 candidate');
+
+    it('should not distribute the bork taxes if there were no candidates');
+
+    it('should end voting if voting has been ongoing for at least ~1 day');
+
+    it('should distribute the bork taxes to the winner of the voting session');
+
+    it('should not distribute the bork taxes if there was a tie');
+
+    it('should unlock all locked borks in the case of a tie');
+
+    it('should ');
 });
