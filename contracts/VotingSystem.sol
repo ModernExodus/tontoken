@@ -33,19 +33,22 @@ contract VotingSystem {
     }
 
     // START -> voting is active
-    function startVoting() internal {
+    function startVoting() internal returns (bool votingActive, address uncontestedWinner) {
         if (candidates.length != 0 && candidates.length > 1) {
             currentStatus = VotingStatus.ACTIVE;
             numVotesHeld++;
             emit VotingActive(numVotesHeld);
-        } else if (candidates.length == 1) {
+            return (true, address(0));
+        }
+        if (candidates.length == 1) {
             numVotesHeld++;
             latestWinner = candidates[0];
             emit VoteUncontested(latestWinner);
             resetVotingState();
-        } else {
-            emit VotingPostponed("No candidates");
+            return (false, latestWinner);
         }
+        emit VotingPostponed("No candidates");
+        return (false, address(0));
     }
 
     // INACTIVE -> voting is over, winner is determined, and options are reset
