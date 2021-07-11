@@ -28,17 +28,26 @@ contract Tontoken is ERC20, VotingSystem {
     mapping(address => uint256) private lockedBorks;
     address[] private lockedBorkAddresses;
     uint256 private lastVotingBlock; // block number of recent voting events
+    uint256 private numBlocks7Days;
+    uint256 private numBlocks1Day;
 
     event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
 
-    constructor() VotingSystem() {
+    constructor(bool prod) VotingSystem() {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
         borkTaxRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
         contractAdmin = msg.sender;
-        minVoterThreshold = 10000000000; // at least 10,000 borks to vote
-        minProposalThreshold = 50000000000; // at least 50,000 borks to propose
+        minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
+        minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
         lastVotingBlock = block.number;
+        if (prod) {
+            numBlocks7Days = 40320;
+            numBlocks1Day = 5760;
+        } else {
+            numBlocks7Days = 7;
+            numBlocks1Day = 1;
+        }
     }
 
     function name() override public pure returns (string memory) {
@@ -173,12 +182,12 @@ contract Tontoken is ERC20, VotingSystem {
 
     // 1 block every ~15 seconds -> 40320 blocks -> ~ 7 days
     function shouldStartVoting() private view returns (bool) {
-        return currentStatus == VotingStatus.INACTIVE && block.number - lastVotingBlock >= 40320;
+        return currentStatus == VotingStatus.INACTIVE && block.number - lastVotingBlock >= numBlocks7Days;
     }
 
     // 5760 blocks -> ~ 1 day
     function shouldEndVoting() private view returns (bool) {
-        return currentStatus == VotingStatus.ACTIVE && block.number - lastVotingBlock >= 5760;
+        return currentStatus == VotingStatus.ACTIVE && block.number - lastVotingBlock >= numBlocks1Day;
     }
 
     // handles starting and stopping of voting sessions
@@ -202,7 +211,13 @@ contract Tontoken is ERC20, VotingSystem {
         }
     }
 
-    function distributeBorkTax(address recipient) private {}
+    function distributeBorkTax(address recipient) private {
+        executeTransfer(address(this), recipient, balanceOf(address(this)));
+    }
+
+    function getVotingStatus() public view returns (VotingStatus) {
+        return currentStatus;
+    }
 
     // function donateBorks(uint256 value) public {
     //     require(value != 0);

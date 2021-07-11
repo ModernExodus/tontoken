@@ -1,4 +1,4 @@
-const { assertVmException, convertToTontokens } = require('./test-utils.js');
+const { assertVmException, convertToTontokens, convertToBorks, mineBlocks } = require('./test-utils.js');
 
 const Tontoken = artifacts.require("Tontoken");
 
@@ -6,7 +6,7 @@ contract('Tontoken', async accounts => {
     let token;
     
     beforeEach(async () => {
-        token = await Tontoken.new();
+        token = await Tontoken.new(false);
     });
 
     it('should put 1000000 Tontokens in the owner account', async () => {
@@ -78,15 +78,95 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(tokenDecimals, 6);
     });
 
-    it('should start voting if ~7 days worth of blocks have been mined');
+    it('should start voting if ~7 days worth of blocks have been mined', async () => {
+        const startStatus = (await token.getVotingStatus.call()).toNumber();
+        await token.transfer.sendTransaction(accounts[2], convertToBorks(50000), { from: accounts[0]});
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 10000, { from: accounts[0] });
+        const endStatus = (await token.getVotingStatus.call()).toNumber();
+        assert.strictEqual(startStatus, 0);
+        assert.strictEqual(endStatus, 2);
+    });
 
-    it('should distribute the bork taxes to the uncontested winner if there was only 1 candidate');
+    it('should end voting if voting has been ongoing for at least ~1 day', async () => {
+        const startStatus = (await token.getVotingStatus.call()).toNumber();
+        await token.transfer.sendTransaction(accounts[2], convertToBorks(50000), { from: accounts[0]});
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
+        const middleStatus = (await token.getVotingStatus.call()).toNumber();
+        await mineBlocks(1);
+        await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
+        const endStatus = (await token.getVotingStatus.call()).toNumber();
+        assert.strictEqual(startStatus, 0);
+        assert.strictEqual(middleStatus, 2);
+        assert.strictEqual(endStatus, 0);
+    });
 
-    it('should not distribute the bork taxes if there were no candidates');
+    it('should distribute the bork taxes to the uncontested winner if there was only 1 candidate', async () => {
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.transfer.sendTransaction(accounts[2], 5000, { from: accounts[0] });
+        await mineBlocks(8);
+        const taxPoolBefore = (await token.balanceOf.call(token.address)).toNumber();
+        await token.transfer.sendTransaction(accounts[2], 5000, { from: accounts[0] });
+        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        const winnerBalance = (await token.balanceOf.call(accounts[1])).toNumber();
+        assert.strictEqual(winnerBalance, taxPoolBefore * 2);
+        assert.strictEqual(taxPoolAfter, 0);
+    });
 
-    it('should end voting if voting has been ongoing for at least ~1 day');
+    it('should not distribute the bork taxes if there were no candidates', async () => {
+        await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
+        await mineBlocks(8);
+        const taxPoolBefore = (await token.balanceOf.call(token.address)).toNumber();
+        await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
+        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        assert.strictEqual(taxPoolAfter, taxPoolBefore * 2);
+    });
 
-    it('should distribute the bork taxes to the winner of the voting session');
+    it('should distribute the bork taxes to the winner of the voting session', async () => {
+        // setup votes
+        for (const account of accounts) {
+            await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
+        }
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[4], { from: accounts[3] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[4], 100, { from: accounts[0] });
+
+        // votes for account1 (1)
+        await token.enterVote.sendTransaction(accounts[1], { from: accounts[0] });
+
+        // votes for account2 (3)
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[3] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[4] });
+
+        // votes for account3 (1)
+        await token.enterVote.sendTransaction(accounts[3], { from: accounts[5] });
+
+        // votes for account4 (4)
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[6] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[7] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[8] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[9] });
+
+        // end voting
+        const taxPool = (await token.balanceOf.call(token.address)).toNumber();
+        const winnerBalanceBefore = (await token.balanceOf.call(accounts[4])).toNumber();
+        await token.transfer.sendTransaction(accounts[5], 64, { from: accounts[0] });
+        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        const winnerBalanceAfter = (await token.balanceOf.call(accounts[4])).toNumber();
+        
+        // assert
+        assert.strictEqual(taxPoolAfter, 0);
+        assert.strictEqual(winnerBalanceAfter, winnerBalanceBefore + taxPool + 1);
+    });
 
     it('should not distribute the bork taxes if there was a tie');
 
