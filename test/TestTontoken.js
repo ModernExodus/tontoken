@@ -168,9 +168,96 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(winnerBalanceAfter, winnerBalanceBefore + taxPool + 1);
     });
 
-    it('should not distribute the bork taxes if there was a tie');
+    it('should not distribute the bork taxes if there was a tie', async () => {
+        // setup votes
+        for (const account of accounts) {
+            await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
+        }
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[4], { from: accounts[3] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[4], 100, { from: accounts[0] });
 
-    it('should unlock all locked borks in the case of a tie');
+        // votes for account1 (1)
+        await token.enterVote.sendTransaction(accounts[1], { from: accounts[0] });
 
-    it('should ');
+        // votes for account2 (4)
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[3] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[4] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[5] });
+
+        // votes for account4 (4)
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[6] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[7] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[8] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[9] });
+
+        // end voting
+        const taxPool = (await token.balanceOf.call(token.address)).toNumber();
+        const account2BalanceBefore = (await token.balanceOf.call(accounts[2])).toNumber();
+        const account4BalanceBefore = (await token.balanceOf.call(accounts[4])).toNumber();
+        await token.transfer.sendTransaction(accounts[5], 64, { from: accounts[0] });
+        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        const account2BalanceAfter = (await token.balanceOf.call(accounts[2])).toNumber();
+        const account4BalanceAfter = (await token.balanceOf.call(accounts[4])).toNumber();
+
+        // assert
+        assert.strictEqual(taxPoolAfter, taxPool + 1);
+        assert.strictEqual(account2BalanceBefore, account2BalanceAfter);
+        assert.strictEqual(account4BalanceBefore, account4BalanceAfter);
+    });
+
+    it('should unlock all locked borks in the case of a tie', async () => {
+         // setup votes
+         for (const account of accounts) {
+            await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
+        }
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[4], 100, { from: accounts[0] });
+
+        // votes for account1 (3)
+        await token.enterVote.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.enterVote.sendTransaction(accounts[1], { from: accounts[1] });
+        await token.enterVote.sendTransaction(accounts[1], { from: accounts[2] });
+
+        // votes for account2 (3)
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[3] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[4] });
+        await token.enterVote.sendTransaction(accounts[2], { from: accounts[5] });
+
+        // end voting
+        const account0LockedBefore = (await token.getLockedBorks.call(accounts[0])).toNumber();
+        const account1LockedBefore = (await token.getLockedBorks.call(accounts[1])).toNumber();
+        const account2LockedBefore = (await token.getLockedBorks.call(accounts[2])).toNumber();
+        const account3LockedBefore = (await token.getLockedBorks.call(accounts[3])).toNumber();
+        const account4LockedBefore = (await token.getLockedBorks.call(accounts[4])).toNumber();
+        const account5LockedBefore = (await token.getLockedBorks.call(accounts[5])).toNumber();
+        await token.transfer.sendTransaction(accounts[7], 64, { from: accounts[0] });
+        const account0LockedAfter = (await token.getLockedBorks.call(accounts[0])).toNumber();
+        const account1LockedAfter = (await token.getLockedBorks.call(accounts[1])).toNumber();
+        const account2LockedAfter = (await token.getLockedBorks.call(accounts[2])).toNumber();
+        const account3LockedAfter = (await token.getLockedBorks.call(accounts[3])).toNumber();
+        const account4LockedAfter = (await token.getLockedBorks.call(accounts[4])).toNumber();
+        const account5LockedAfter = (await token.getLockedBorks.call(accounts[5])).toNumber();
+        
+        // assert
+        assert.strictEqual(account0LockedBefore, convertToBorks(60000));
+        assert.strictEqual(account1LockedBefore, convertToBorks(60000));
+        assert.strictEqual(account2LockedBefore, convertToBorks(60000));
+        assert.strictEqual(account3LockedBefore, convertToBorks(10000));
+        assert.strictEqual(account4LockedBefore, convertToBorks(10000));
+        assert.strictEqual(account5LockedBefore, convertToBorks(10000));
+        assert.strictEqual(account0LockedAfter, 0);
+        assert.strictEqual(account1LockedAfter, 0);
+        assert.strictEqual(account2LockedAfter, 0);
+        assert.strictEqual(account3LockedAfter, 0);
+        assert.strictEqual(account4LockedAfter, 0);
+        assert.strictEqual(account5LockedAfter, 0);
+    });
 });

@@ -153,6 +153,10 @@ contract Tontoken is ERC20, VotingSystem {
         potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
     }
 
+    function getLockedBorks(address owner) public view returns (uint256) {
+        return lockedBorks[owner];
+    }
+
     function lockBorks(address owner, uint256 toLock) private {
         lockedBorkAddresses.push(owner);
         lockedBorks[owner] += toLock;
@@ -165,7 +169,7 @@ contract Tontoken is ERC20, VotingSystem {
         delete lockedBorkAddresses;
     }
 
-    function getSendableBalance(address owner) private view returns (uint256) {
+    function getSendableBalance(address owner) public view returns (uint256) {
         if (lockedBorks[owner] >= balances[owner]) {
             return 0;
         }
