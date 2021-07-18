@@ -26,18 +26,28 @@ contract Tontoken is ERC20, VotingSystem {
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
     mapping(address => uint256) private lockedBorks;
-    uint256 private lastVoteTimestamp;
+    address[] private lockedBorkAddresses;
+    uint256 private lastVotingBlock; // block number of recent voting events
+    uint256 private numBlocks7Days;
+    uint256 private numBlocks1Day;
 
     event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
 
-    constructor() VotingSystem() {
+    constructor(bool prod) VotingSystem() {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
         borkTaxRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
         contractAdmin = msg.sender;
-        minVoterThreshold = 10000000000; // at least 10,000 borks to vote
-        minProposalThreshold = 50000000000; // at least 50,000 borks to propose
-        lastVoteTimestamp = block.timestamp;
+        minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
+        minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
+        lastVotingBlock = block.number;
+        if (prod) {
+            numBlocks7Days = 40320;
+            numBlocks1Day = 5760;
+        } else {
+            numBlocks7Days = 7;
+            numBlocks1Day = 1;
+        }
     }
 
     function name() override public pure returns (string memory) {
@@ -63,6 +73,7 @@ contract Tontoken is ERC20, VotingSystem {
     function transfer(address _to, uint256 _value) override public returns (bool) {
         require(getSendableBalance(msg.sender) >= _value && _to != address(0));
         executeTransfer(msg.sender, _to, _value);
+        orchestrateVoting();
         return true;
     }
     
@@ -72,6 +83,7 @@ contract Tontoken is ERC20, VotingSystem {
         require(_to != address(0));
         allowed[msg.sender][_from] -= _value;
         executeTransfer(_from, _to, _value);
+        orchestrateVoting();
         return true;
     }
     
@@ -131,6 +143,7 @@ contract Tontoken is ERC20, VotingSystem {
 
     function proposeBorkTaxRecipient(address recipient) public {
         require(balanceOf(msg.sender) >= minProposalThreshold);
+        require(recipient != address(0));
         lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);
     }
@@ -140,15 +153,23 @@ contract Tontoken is ERC20, VotingSystem {
         potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
     }
 
+    function getLockedBorks(address owner) public view returns (uint256) {
+        return lockedBorks[owner];
+    }
+
     function lockBorks(address owner, uint256 toLock) private {
+        lockedBorkAddresses.push(owner);
         lockedBorks[owner] += toLock;
     }
 
-    function unlockBorks(address owner, uint256 toUnlock) private {
-        lockedBorks[owner] -= toUnlock;
+    function unlockAllBorks() private {
+        for (uint256 i = 0; i < lockedBorkAddresses.length; i++) {
+            delete lockedBorks[lockedBorkAddresses[i]];
+        }
+        delete lockedBorkAddresses;
     }
 
-    function getSendableBalance(address owner) private view returns (uint256) {
+    function getSendableBalance(address owner) public view returns (uint256) {
         if (lockedBorks[owner] >= balances[owner]) {
             return 0;
         }
@@ -161,6 +182,45 @@ contract Tontoken is ERC20, VotingSystem {
 
     function getProposalMinimum() public view returns (uint256) {
         return minProposalThreshold;
+    }
+
+    // 1 block every ~15 seconds -> 40320 blocks -> ~ 7 days
+    function shouldStartVoting() private view returns (bool) {
+        return currentStatus == VotingStatus.INACTIVE && block.number - lastVotingBlock >= numBlocks7Days;
+    }
+
+    // 5760 blocks -> ~ 1 day
+    function shouldEndVoting() private view returns (bool) {
+        return currentStatus == VotingStatus.ACTIVE && block.number - lastVotingBlock >= numBlocks1Day;
+    }
+
+    // handles starting and stopping of voting sessions
+    function orchestrateVoting() private {
+        if (shouldStartVoting()) {
+            (bool active, address winner) = super.startVoting();
+            if (!active && winner != address(0)) {
+                unlockAllBorks();
+                distributeBorkTax(winner);
+            } else if (!active) {
+                unlockAllBorks();
+            }
+            lastVotingBlock = block.number;
+        } else if (shouldEndVoting()) {
+            address winner = super.stopVoting();
+            if (winner != address(0)) {
+                distributeBorkTax(winner);
+            }
+            unlockAllBorks();
+            lastVotingBlock = block.number;
+        }
+    }
+
+    function distributeBorkTax(address recipient) private {
+        executeTransfer(address(this), recipient, balanceOf(address(this)));
+    }
+
+    function getVotingStatus() public view returns (VotingStatus) {
+        return currentStatus;
     }
 
     // function donateBorks(uint256 value) public {
