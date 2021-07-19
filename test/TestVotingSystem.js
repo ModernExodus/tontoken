@@ -78,9 +78,6 @@ contract('Voting System', async accounts => {
         await vs.startVotingP();
         await vs.voteForCandidate(accounts[2], accounts[5]);
         assert.strictEqual((await vs.getCurrentStatus()).toNumber(), 2);
-        const allVoters = await vs.getVoters();
-        assert.strictEqual(allVoters.length, 1);
-        assert.strictEqual(allVoters[0], accounts[5]);
         assert.ok(await vs.getHasVoted(accounts[5]));
     });
 
@@ -109,7 +106,7 @@ contract('Voting System', async accounts => {
         assert.strictEqual(convertHexToAscii(transactionLog.args[0]), 'No votes cast');
     });
 
-    it('should postpone voting and reset vote count if there is a tie', async () => {
+    it('should extend voting if there is a tie', async () => {
         await vs.addCandidate(accounts[0], accounts[1]);
         await vs.addCandidate(accounts[1], accounts[2]);
         await vs.addCandidate(accounts[2], accounts[3]);
@@ -133,14 +130,15 @@ contract('Voting System', async accounts => {
         assert.strictEqual(acc2Votes, 3);
         const transaction = await vs.stopVotingP();
         const transactionLog = transaction.logs[0];
-        assert.strictEqual(transactionLog.event, 'VotingPostponed');
-        assert.strictEqual(convertHexToAscii(transactionLog.args[0]), 'Voting resulted in tie');
+        assert.strictEqual(transactionLog.event, 'VotingExtended');
         acc0Votes = (await vs.getNumVotes(accounts[0])).toNumber();
         acc1Votes = (await vs.getNumVotes(accounts[1])).toNumber();
         acc2Votes = (await vs.getNumVotes(accounts[2])).toNumber();
-        assert.strictEqual(acc0Votes, 0);
-        assert.strictEqual(acc1Votes, 0);
-        assert.strictEqual(acc2Votes, 0);
+        assert.strictEqual(acc0Votes, 2);
+        assert.strictEqual(acc1Votes, 3);
+        assert.strictEqual(acc2Votes, 3);
+        const status = (await vs.getCurrentStatus()).toNumber();
+        assert.strictEqual(status, 2);
     });
 
     it('should stop voting and determine a winner');
