@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
-pragma solidity 0.8.4;
+pragma solidity ^0.8.4;
 
 import "./VotingSystem.sol";
 
@@ -26,27 +26,19 @@ contract VotingSystemProxy is VotingSystem {
     }
 
     function getIsCandidate(address a) public view returns (bool) {
-        return isCandidate[a];
+        return isCandidate[generateKey(a)];
     }
 
     function getHasVoted(address a) public view returns (bool) {
-        return voted[a];
+        return voted[generateKey(a)];
     }
 
     function hasAddedCandidate(address a) public view returns (bool) {
-        return addedProposal[a];
+        return addedProposal[generateKey(a)];
     }
 
     function getCandidates() public view returns (address[] memory) {
         return candidates;
-    }
-
-    function getVoters() public view returns (address[] memory) {
-        return voters;
-    }
-
-    function getProposers() public view returns (address[] memory) {
-        return proposers;
     }
 
     function getNumVotes(address a) public view returns (uint128) {

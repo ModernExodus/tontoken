@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
 pragma solidity ^0.8.4;
 
 import "./IERC20.sol";
@@ -25,8 +24,7 @@ contract Tontoken is ERC20, VotingSystem {
 
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
-    mapping(address => uint256) private lockedBorks;
-    address[] private lockedBorkAddresses;
+    mapping(bytes32 => uint256) private lockedBorks;
     uint256 private lastVotingBlock; // block number of recent voting events
     uint256 private numBlocks7Days;
     uint256 private numBlocks1Day;
@@ -154,26 +152,19 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function getLockedBorks(address owner) public view returns (uint256) {
-        return lockedBorks[owner];
+        return lockedBorks[generateKey(owner)];
     }
 
     function lockBorks(address owner, uint256 toLock) private {
-        lockedBorkAddresses.push(owner);
-        lockedBorks[owner] += toLock;
-    }
-
-    function unlockAllBorks() private {
-        for (uint256 i = 0; i < lockedBorkAddresses.length; i++) {
-            delete lockedBorks[lockedBorkAddresses[i]];
-        }
-        delete lockedBorkAddresses;
+        lockedBorks[generateKey(owner)] += toLock;
     }
 
     function getSendableBalance(address owner) public view returns (uint256) {
-        if (lockedBorks[owner] >= balances[owner]) {
+        bytes32 generatedOwnerKey = generateKey(owner);
+        if (lockedBorks[generatedOwnerKey] >= balances[owner]) {
             return 0;
         }
-        return balances[owner] - lockedBorks[owner];
+        return balances[owner] - lockedBorks[generatedOwnerKey];
     }
 
     function getVotingMinimum() public view returns (uint256) {
@@ -199,18 +190,16 @@ contract Tontoken is ERC20, VotingSystem {
         if (shouldStartVoting()) {
             (bool active, address winner) = super.startVoting();
             if (!active && winner != address(0)) {
-                unlockAllBorks();
                 distributeBorkTax(winner);
-            } else if (!active) {
-                unlockAllBorks();
             }
+            delete potentialRecipients;
             lastVotingBlock = block.number;
         } else if (shouldEndVoting()) {
             address winner = super.stopVoting();
             if (winner != address(0)) {
                 distributeBorkTax(winner);
+                delete potentialRecipients;
             }
-            unlockAllBorks();
             lastVotingBlock = block.number;
         }
     }
