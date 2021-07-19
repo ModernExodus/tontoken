@@ -5,7 +5,6 @@ import "./VotingSystem.sol";
 
 contract Tontoken is ERC20, VotingSystem {
     // fields to help the contract operate
-    address private contractAdmin;
     uint256 private _totalSupply;
     uint256 private allTimeTaxCollected;
     uint8 private borkTaxRateShift; // percent of each transaction to be held by contract for eventual donation
@@ -16,7 +15,7 @@ contract Tontoken is ERC20, VotingSystem {
     // struct with information about candidate
     struct BorkTaxRecipient {
         address addr;
-        bytes32 name; // optional
+        string name; // optional
         string description; // optional
         string website; // optional
     }
@@ -35,7 +34,6 @@ contract Tontoken is ERC20, VotingSystem {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
         borkTaxRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
-        contractAdmin = msg.sender;
         minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
         minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
         lastVotingBlock = block.number;
@@ -144,9 +142,10 @@ contract Tontoken is ERC20, VotingSystem {
         require(recipient != address(0));
         lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);
+        potentialRecipients.push(BorkTaxRecipient(recipient, "", "", ""));
     }
 
-    function proposeBorkTaxRecipient(address recipient, bytes32 name, string memory description, string memory website) public {
+    function proposeBorkTaxRecipient(address recipient, string memory name, string memory description, string memory website) public {
         proposeBorkTaxRecipient(recipient);
         potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
     }
@@ -190,6 +189,7 @@ contract Tontoken is ERC20, VotingSystem {
         if (shouldStartVoting()) {
             (bool active, address winner) = super.startVoting();
             if (!active && winner != address(0)) {
+                // uncontested winner
                 distributeBorkTax(winner);
             }
             delete potentialRecipients;

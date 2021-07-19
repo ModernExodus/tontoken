@@ -9,8 +9,16 @@ contract VotingSystemProxy is VotingSystem {
         super.startVoting();
     }
 
-    function stopVotingP() public {
-        super.stopVoting();
+    function stopVotingP() public returns (address winner) {
+        return super.stopVoting();
+    }
+
+    function addCandidateP(address candidate, address proposer) public {
+        super.addCandidate(candidate, proposer);
+    }
+
+    function voteForCandidateP(address vote, address voter) public {
+        super.voteForCandidate(vote, voter);
     }
 
     function getLatestWinner() public view returns (address) {

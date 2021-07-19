@@ -35,6 +35,7 @@ contract VotingSystem is UniqueKeyGenerator {
 
     // START -> voting is active
     function startVoting() internal returns (bool votingActive, address uncontestedWinner) {
+        assert(currentStatus == VotingStatus.INACTIVE);
         if (candidates.length != 0 && candidates.length > 1) {
             currentStatus = VotingStatus.ACTIVE;
             numVotesHeld++;
@@ -54,7 +55,7 @@ contract VotingSystem is UniqueKeyGenerator {
 
     // INACTIVE -> voting is over, winner is determined, and options are reset
     function stopVoting() internal returns (address winner) {
-        require(currentStatus == VotingStatus.ACTIVE);
+        assert(currentStatus == VotingStatus.ACTIVE);
         (address _winner, uint128 _numVotes, bool _tied) = determineWinner();
         if (_winner == address(0)) {
             currentStatus = VotingStatus.INACTIVE;
@@ -72,8 +73,8 @@ contract VotingSystem is UniqueKeyGenerator {
         return _winner;
     }
 
-    function addCandidate(address candidate, address proposer) public {
-        require(currentStatus == VotingStatus.INACTIVE);
+    function addCandidate(address candidate, address proposer) internal {
+        assert(currentStatus == VotingStatus.INACTIVE);
         bytes32 proposerKey = generateKey(proposer);
         bytes32 candidateKey = generateKey(candidate);
         require(!addedProposal[proposerKey] && !isCandidate[candidateKey]);
@@ -82,8 +83,8 @@ contract VotingSystem is UniqueKeyGenerator {
         candidates.push(candidate);
     }
 
-    function voteForCandidate(address vote, address voter) public {
-        require(currentStatus == VotingStatus.ACTIVE);
+    function voteForCandidate(address vote, address voter) internal {
+        assert(currentStatus == VotingStatus.ACTIVE);
         bytes32 voteKey = generateKey(vote);
         bytes32 voterKey = generateKey(voter);
         require(!voted[voterKey] && isCandidate[voteKey]);
