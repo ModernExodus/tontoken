@@ -119,7 +119,6 @@ contract VotingSystem is UniqueKeyGenerator {
     function resetVotingState() private {
         for (uint32 i = 0; i < candidates.length; i++) {
             delete votes[candidates[i]];
-            delete isCandidate[generateKey(candidates[i])];
         }
         delete candidates;
         changeKeySalt();
