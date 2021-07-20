@@ -4,11 +4,11 @@ pragma solidity ^0.8.4;
 import "./UniqueKeyGenerator.sol";
 
 contract VotingSystem is UniqueKeyGenerator {
-    // fields to help with donation distribution and voting
+    // fields to help with voting
     mapping(bytes32 => bool) internal isCandidate;
     
     // candidates
-    mapping(address => uint128) internal votes;
+    mapping(address => uint256) internal votes;
     address[] internal candidates;
     
     // voters
@@ -21,16 +21,18 @@ contract VotingSystem is UniqueKeyGenerator {
     enum VotingStatus { INACTIVE, PAUSE, ACTIVE }
     address internal latestWinner;
     uint256 internal numVotesHeld;
+    uint16 internal maxCandidates;
 
     event VotingActive(uint256 votingSessionNumber);
-    event VotingInactive(address winner, uint128 numVotes);
+    event VotingInactive(address winner, uint256 numVotes);
     event VotingExtended();
     event VotingPostponed(bytes32 reason);
     event VoteUncontested(address winner);
     event VoteCounted(address indexed voter, address indexed vote);
 
-    constructor () {
+    constructor (uint16 _maxCandidates) {
         currentStatus = VotingStatus.INACTIVE;
+        maxCandidates = _maxCandidates;
     }
 
     // START -> voting is active
@@ -56,7 +58,7 @@ contract VotingSystem is UniqueKeyGenerator {
     // INACTIVE -> voting is over, winner is determined, and options are reset
     function stopVoting() internal returns (address winner) {
         assert(currentStatus == VotingStatus.ACTIVE);
-        (address _winner, uint128 _numVotes, bool _tied) = determineWinner();
+        (address _winner, uint256 _numVotes, bool _tied) = determineWinner();
         if (_winner == address(0)) {
             currentStatus = VotingStatus.INACTIVE;
             emit VotingPostponed("No votes cast");
@@ -75,6 +77,7 @@ contract VotingSystem is UniqueKeyGenerator {
 
     function addCandidate(address candidate, address proposer) internal {
         assert(currentStatus == VotingStatus.INACTIVE);
+        require(candidates.length < maxCandidates);
         bytes32 proposerKey = generateKey(proposer);
         bytes32 candidateKey = generateKey(candidate);
         require(!addedProposal[proposerKey] && !isCandidate[candidateKey]);
@@ -95,19 +98,19 @@ contract VotingSystem is UniqueKeyGenerator {
 
     // no-votes -> returns address(0), 0
     // tie -> returns third bool true
-    function determineWinner() private view returns (address winner, uint128 numVotes, bool tie) {
+    function determineWinner() private view returns (address winner, uint256 numVotes, bool tie) {
         address currentLeader;
-        uint128 currentMaxVotes;
-        uint32 winningIndex;
+        uint256 currentMaxVotes;
+        uint16 winningIndex;
         bool _tie;
-        for (uint32 i = 0; i < candidates.length; i++) {
+        for (uint16 i = 0; i < candidates.length; i++) {
             if (votes[candidates[i]] > currentMaxVotes) {
                 currentLeader = candidates[i];
                 currentMaxVotes = votes[candidates[i]];
                 winningIndex = i;
             }
         }
-        for (uint32 i = 0; i < candidates.length; i++) {
+        for (uint16 i = 0; i < candidates.length; i++) {
             if (i != winningIndex && votes[candidates[i]] == currentMaxVotes) {
                 _tie = true;
                 break;
@@ -117,7 +120,7 @@ contract VotingSystem is UniqueKeyGenerator {
     }
 
     function resetVotingState() private {
-        for (uint32 i = 0; i < candidates.length; i++) {
+        for (uint16 i = 0; i < candidates.length; i++) {
             delete votes[candidates[i]];
         }
         delete candidates;

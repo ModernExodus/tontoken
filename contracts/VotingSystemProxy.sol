@@ -5,6 +5,9 @@ import "./VotingSystem.sol";
 
 // proxy to interact with Voting System for unit testing
 contract VotingSystemProxy is VotingSystem {
+
+    constructor () VotingSystem(8) {}
+
     function startVotingP() public {
         super.startVoting();
     }
@@ -49,7 +52,7 @@ contract VotingSystemProxy is VotingSystem {
         return candidates;
     }
 
-    function getNumVotes(address a) public view returns (uint128) {
+    function getNumVotes(address a) public view returns (uint256) {
         return votes[a];
     }
 }
