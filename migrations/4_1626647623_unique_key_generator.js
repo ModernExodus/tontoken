@@ -1,5 +1,5 @@
 const UniqueKeyGenerator = artifacts.require('UniqueKeyGenerator');
 
 module.exports = function(deployer) {
-  deployer.deploy(UniqueKeyGenerator, true);
+  deployer.deploy(UniqueKeyGenerator);
 };
