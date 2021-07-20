@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
 pragma solidity ^0.8.4;
 
-contract VotingSystem {
+import "./UniqueKeyGenerator.sol";
+
+contract VotingSystem is UniqueKeyGenerator {
     // fields to help with donation distribution and voting
-    mapping(address => bool) internal isCandidate;
+    mapping(bytes32 => bool) internal isCandidate;
     
     // candidates
     mapping(address => uint128) internal votes;
     address[] internal candidates;
     
     // voters
-    mapping(address => bool) internal voted;
-    address[] internal voters;
+    mapping(bytes32 => bool) internal voted;
 
     // proposers
-    mapping(address => bool) internal addedProposal;
-    address[] internal proposers;
+    mapping(bytes32 => bool) internal addedProposal;
 
     VotingStatus internal currentStatus;
     enum VotingStatus { INACTIVE, PAUSE, ACTIVE }
@@ -24,6 +24,7 @@ contract VotingSystem {
 
     event VotingActive(uint256 votingSessionNumber);
     event VotingInactive(address winner, uint128 numVotes);
+    event VotingExtended();
     event VotingPostponed(bytes32 reason);
     event VoteUncontested(address winner);
     event VoteCounted(address indexed voter, address indexed vote);
@@ -34,6 +35,7 @@ contract VotingSystem {
 
     // START -> voting is active
     function startVoting() internal returns (bool votingActive, address uncontestedWinner) {
+        assert(currentStatus == VotingStatus.INACTIVE);
         if (candidates.length != 0 && candidates.length > 1) {
             currentStatus = VotingStatus.ACTIVE;
             numVotesHeld++;
@@ -53,37 +55,41 @@ contract VotingSystem {
 
     // INACTIVE -> voting is over, winner is determined, and options are reset
     function stopVoting() internal returns (address winner) {
-        require(currentStatus == VotingStatus.ACTIVE);
-        currentStatus = VotingStatus.INACTIVE;
+        assert(currentStatus == VotingStatus.ACTIVE);
         (address _winner, uint128 _numVotes, bool _tied) = determineWinner();
         if (_winner == address(0)) {
+            currentStatus = VotingStatus.INACTIVE;
             emit VotingPostponed("No votes cast");
             return address(0);
         }
         if (_tied) {
-            emit VotingPostponed("Voting resulted in tie");
-            resetVoteCount();
+            emit VotingExtended();
             return address(0);
         }
+        currentStatus = VotingStatus.INACTIVE;
         emit VotingInactive(_winner, _numVotes);
         latestWinner = _winner;
         resetVotingState();
         return _winner;
     }
 
-    function addCandidate(address candidate, address proposer) public {
-        require(currentStatus == VotingStatus.INACTIVE && !addedProposal[proposer] && !isCandidate[candidate]);
-        isCandidate[candidate] = true;
-        addedProposal[proposer] = true;
+    function addCandidate(address candidate, address proposer) internal {
+        assert(currentStatus == VotingStatus.INACTIVE);
+        bytes32 proposerKey = generateKey(proposer);
+        bytes32 candidateKey = generateKey(candidate);
+        require(!addedProposal[proposerKey] && !isCandidate[candidateKey]);
+        isCandidate[candidateKey] = true;
+        addedProposal[proposerKey] = true;
         candidates.push(candidate);
-        proposers.push(proposer);
     }
 
-    function voteForCandidate(address vote, address voter) public {
-        require(currentStatus == VotingStatus.ACTIVE && !voted[voter] && isCandidate[vote]);
+    function voteForCandidate(address vote, address voter) internal {
+        assert(currentStatus == VotingStatus.ACTIVE);
+        bytes32 voteKey = generateKey(vote);
+        bytes32 voterKey = generateKey(voter);
+        require(!voted[voterKey] && isCandidate[voteKey]);
         votes[vote]++;
-        voted[voter] = true;
-        voters.push(voter);
+        voted[voterKey] = true;
         emit VoteCounted(voter, vote);
     }
 
@@ -113,23 +119,8 @@ contract VotingSystem {
     function resetVotingState() private {
         for (uint32 i = 0; i < candidates.length; i++) {
             delete votes[candidates[i]];
-            delete isCandidate[candidates[i]];
         }
         delete candidates;
-        for (uint32 i = 0; i < voters.length; i++) {
-            delete voted[voters[i]];
-        }
-        delete voters;
-        for (uint32 i = 0; i < proposers.length; i++) {
-            delete addedProposal[proposers[i]];
-            delete proposers[i];
-        }
-        delete proposers;
-    }
-
-    function resetVoteCount() private {
-        for (uint32 i = 0; i < candidates.length; i++) {
-            delete votes[candidates[i]];
-        }
+        changeKeySalt();
     }
 }

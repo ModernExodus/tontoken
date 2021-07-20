@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
 pragma solidity ^0.8.4;
 
 import "./IERC20.sol";
@@ -6,7 +5,6 @@ import "./VotingSystem.sol";
 
 contract Tontoken is ERC20, VotingSystem {
     // fields to help the contract operate
-    address private contractAdmin;
     uint256 private _totalSupply;
     uint256 private allTimeTaxCollected;
     uint8 private borkTaxRateShift; // percent of each transaction to be held by contract for eventual donation
@@ -17,7 +15,7 @@ contract Tontoken is ERC20, VotingSystem {
     // struct with information about candidate
     struct BorkTaxRecipient {
         address addr;
-        bytes32 name; // optional
+        string name; // optional
         string description; // optional
         string website; // optional
     }
@@ -25,8 +23,7 @@ contract Tontoken is ERC20, VotingSystem {
 
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
-    mapping(address => uint256) private lockedBorks;
-    address[] private lockedBorkAddresses;
+    mapping(bytes32 => uint256) private lockedBorks;
     uint256 private lastVotingBlock; // block number of recent voting events
     uint256 private numBlocks7Days;
     uint256 private numBlocks1Day;
@@ -37,7 +34,6 @@ contract Tontoken is ERC20, VotingSystem {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
         borkTaxRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
-        contractAdmin = msg.sender;
         minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
         minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
         lastVotingBlock = block.number;
@@ -146,34 +142,28 @@ contract Tontoken is ERC20, VotingSystem {
         require(recipient != address(0));
         lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);
+        potentialRecipients.push(BorkTaxRecipient(recipient, "", "", ""));
     }
 
-    function proposeBorkTaxRecipient(address recipient, bytes32 name, string memory description, string memory website) public {
+    function proposeBorkTaxRecipient(address recipient, string memory name, string memory description, string memory website) public {
         proposeBorkTaxRecipient(recipient);
         potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
     }
 
     function getLockedBorks(address owner) public view returns (uint256) {
-        return lockedBorks[owner];
+        return lockedBorks[generateKey(owner)];
     }
 
     function lockBorks(address owner, uint256 toLock) private {
-        lockedBorkAddresses.push(owner);
-        lockedBorks[owner] += toLock;
-    }
-
-    function unlockAllBorks() private {
-        for (uint256 i = 0; i < lockedBorkAddresses.length; i++) {
-            delete lockedBorks[lockedBorkAddresses[i]];
-        }
-        delete lockedBorkAddresses;
+        lockedBorks[generateKey(owner)] += toLock;
     }
 
     function getSendableBalance(address owner) public view returns (uint256) {
-        if (lockedBorks[owner] >= balances[owner]) {
+        bytes32 generatedOwnerKey = generateKey(owner);
+        if (lockedBorks[generatedOwnerKey] >= balances[owner]) {
             return 0;
         }
-        return balances[owner] - lockedBorks[owner];
+        return balances[owner] - lockedBorks[generatedOwnerKey];
     }
 
     function getVotingMinimum() public view returns (uint256) {
@@ -199,18 +189,17 @@ contract Tontoken is ERC20, VotingSystem {
         if (shouldStartVoting()) {
             (bool active, address winner) = super.startVoting();
             if (!active && winner != address(0)) {
-                unlockAllBorks();
+                // uncontested winner
                 distributeBorkTax(winner);
-            } else if (!active) {
-                unlockAllBorks();
             }
+            delete potentialRecipients;
             lastVotingBlock = block.number;
         } else if (shouldEndVoting()) {
             address winner = super.stopVoting();
             if (winner != address(0)) {
                 distributeBorkTax(winner);
+                delete potentialRecipients;
             }
-            unlockAllBorks();
             lastVotingBlock = block.number;
         }
     }

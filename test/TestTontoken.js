@@ -210,7 +210,7 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(account4BalanceBefore, account4BalanceAfter);
     });
 
-    it('should unlock all locked borks in the case of a tie', async () => {
+    it('should not unlock all locked borks in the case of a tie', async () => {
          // setup votes
          for (const account of accounts) {
             await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
@@ -253,11 +253,11 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(account3LockedBefore, convertToBorks(10000));
         assert.strictEqual(account4LockedBefore, convertToBorks(10000));
         assert.strictEqual(account5LockedBefore, convertToBorks(10000));
-        assert.strictEqual(account0LockedAfter, 0);
-        assert.strictEqual(account1LockedAfter, 0);
-        assert.strictEqual(account2LockedAfter, 0);
-        assert.strictEqual(account3LockedAfter, 0);
-        assert.strictEqual(account4LockedAfter, 0);
-        assert.strictEqual(account5LockedAfter, 0);
+        assert.strictEqual(account0LockedAfter, account0LockedBefore);
+        assert.strictEqual(account1LockedAfter, account1LockedBefore);
+        assert.strictEqual(account2LockedAfter, account2LockedBefore);
+        assert.strictEqual(account3LockedAfter, account3LockedBefore);
+        assert.strictEqual(account4LockedAfter, account4LockedBefore);
+        assert.strictEqual(account5LockedAfter, account5LockedBefore);
     });
 });
