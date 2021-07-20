@@ -56,7 +56,14 @@ contract('Tontoken', async accounts => {
         await assertVmException(token.transferFrom.sendTransaction, owner, accounts[5], 1100, { from: delegate });
     });
 
-    it('should not allow a delegated sender to send more than the balance of an address');
+    it('should not allow a delegated sender to send more than the balance of an address', async () => {
+        const delegate = accounts[3];
+        const owner = accounts[1];
+        await token.transfer.sendTransaction(owner, 50000, { from: accounts[0] });
+        await token.approve.sendTransaction(delegate, 50000, { from: owner });
+        await token.transfer.sendTransaction(accounts[4], 30000, { from: owner });
+        await assertVmException(token.transferFrom.sendTransaction, owner, accounts[5], 35000, { from: delegate });
+    });
 
     it('should not allow an undelegated sender to send tokens from another account', async () => {
         const undelegated = accounts[2];
