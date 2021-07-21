@@ -8,9 +8,12 @@ contract VotingSystem is UniqueKeyGenerator {
     mapping(bytes32 => bool) internal isCandidate;
     
     // candidates
-    mapping(address => uint256) internal votes;
     address[] internal candidates;
-    
+    mapping(bytes32 => uint256) internal votes;
+    address internal currentLeader;
+    uint256 internal currentLeaderVotes;
+    bool internal currentlyTied;
+
     // voters
     mapping(bytes32 => bool) internal voted;
 
@@ -91,39 +94,33 @@ contract VotingSystem is UniqueKeyGenerator {
         bytes32 voteKey = generateKey(vote);
         bytes32 voterKey = generateKey(voter);
         require(!voted[voterKey] && isCandidate[voteKey]);
-        votes[vote]++;
+        votes[voteKey]++;
         voted[voterKey] = true;
+        adjustLeader(vote, votes[voteKey]);
         emit VoteCounted(voter, vote);
+    }
+
+    function adjustLeader(address vote, uint256 numVotes) private {
+        if (numVotes == currentLeaderVotes) {
+            currentlyTied = true;
+        } else if (numVotes > currentLeaderVotes) {
+            currentLeaderVotes = numVotes;
+            currentLeader = vote;
+            currentlyTied = false;
+        }
     }
 
     // no-votes -> returns address(0), 0
     // tie -> returns third bool true
     function determineWinner() private view returns (address winner, uint256 numVotes, bool tie) {
-        address currentLeader;
-        uint256 currentMaxVotes;
-        uint16 winningIndex;
-        bool _tie;
-        for (uint16 i = 0; i < candidates.length; i++) {
-            if (votes[candidates[i]] > currentMaxVotes) {
-                currentLeader = candidates[i];
-                currentMaxVotes = votes[candidates[i]];
-                winningIndex = i;
-            }
-        }
-        for (uint16 i = 0; i < candidates.length; i++) {
-            if (i != winningIndex && votes[candidates[i]] == currentMaxVotes) {
-                _tie = true;
-                break;
-            }
-        }
-        return (currentLeader, currentMaxVotes, _tie);
+        return (currentLeader, currentLeaderVotes, currentlyTied);
     }
 
     function resetVotingState() private {
-        for (uint16 i = 0; i < candidates.length; i++) {
-            delete votes[candidates[i]];
-        }
         delete candidates;
+        delete currentLeader;
+        delete currentLeaderVotes;
+        delete currentlyTied;
         changeKeySalt();
     }
 }
