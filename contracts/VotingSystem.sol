@@ -61,21 +61,20 @@ contract VotingSystem is UniqueKeyGenerator {
     // INACTIVE -> voting is over, winner is determined, and options are reset
     function stopVoting() internal returns (address winner) {
         assert(currentStatus == VotingStatus.ACTIVE);
-        (address _winner, uint256 _numVotes, bool _tied) = determineWinner();
-        if (_winner == address(0)) {
+        if (currentLeader == address(0)) {
             currentStatus = VotingStatus.INACTIVE;
             emit VotingPostponed("No votes cast");
             return address(0);
         }
-        if (_tied) {
+        if (currentlyTied) {
             emit VotingExtended();
             return address(0);
         }
         currentStatus = VotingStatus.INACTIVE;
-        emit VotingInactive(_winner, _numVotes);
-        latestWinner = _winner;
+        emit VotingInactive(currentLeader, currentLeaderVotes);
+        latestWinner = currentLeader;
         resetVotingState();
-        return _winner;
+        return currentLeader;
     }
 
     function addCandidate(address candidate, address proposer) internal {
@@ -108,12 +107,6 @@ contract VotingSystem is UniqueKeyGenerator {
             currentLeader = vote;
             currentlyTied = false;
         }
-    }
-
-    // no-votes -> returns address(0), 0
-    // tie -> returns third bool true
-    function determineWinner() private view returns (address winner, uint256 numVotes, bool tie) {
-        return (currentLeader, currentLeaderVotes, currentlyTied);
     }
 
     function resetVotingState() private {
