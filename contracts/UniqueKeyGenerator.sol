@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 contract UniqueKeyGenerator {
