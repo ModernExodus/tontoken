@@ -1,5 +1,11 @@
 # Tontoken :dog: : A Decentralized Way of Helping Others
-Inspired by my adopted dog Tonto with the original goal of supporting animal shelters, this tradable ERC20 token aims to give back to organizations suggested and voted on by users.
+Inspired by my adopted dog Tonto with the original goal of supporting animal shelters, this tradable ERC20 token aims to give back to organizations suggested and voted on by users while still providing the opportunity for cyrpto traders to make big profits.
+
+### Contract Address
+| Environment      | Address |
+| -----------      | ----------- |
+| Mainnet          | TBD       |
+| Testnet          | TBD        |
 
 ## About
 ---
@@ -32,7 +38,10 @@ Tontoken bridges the gap between crypto daytraders and those who are struggling 
 * Each address can vote for a max of 1 candidate each active voting session
 
 ## How to Suggest Candidates
-Coming Soon
+* Only an address for the candidate is required to suggest them, but other optional pieces of information are highly encouraged to allow community members to make informed decisions:
+    * __Name__ of the person, group, or org owning the address
+    * __Description__ of the person, group, or org owning the address
+    * __Website__ of the person, group, or org owning the address
 
 ## Locked Tokens
 * To prevent holders from placing multiple votes or suggesting multiple candidates by shifting Tontokens between addresses, tokens are _TEMPORARILY_ locked from use
@@ -50,4 +59,4 @@ Coming Soon
 * Tontoken depends on community involvement to both suggest and vote on deserving candidates.
 * There is nothing stopping someone from suggesting themselves to increase their own holdings
 * An active community will ensure the winners of the Bork Pools are deserving of the funds they receive
-    * Who doesn't like helping those in need while making BANK?!?!
+    * Who doesn't like helping those in need while making BANK :dollar::chart:?!?!
