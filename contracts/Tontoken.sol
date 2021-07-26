@@ -138,16 +138,20 @@ contract Tontoken is ERC20, VotingSystem {
         super.voteForCandidate(vote, msg.sender);
     }
 
-    function proposeBorkTaxRecipient(address recipient) public {
+    function addBorkTaxRecipient(address recipient) private {
         require(balanceOf(msg.sender) >= minProposalThreshold);
         require(recipient != address(0));
         lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);
+    }
+
+    function proposeBorkTaxRecipient(address recipient) public {
+        addBorkTaxRecipient(recipient);
         potentialRecipients.push(BorkTaxRecipient(recipient, "", "", ""));
     }
 
     function proposeBorkTaxRecipient(address recipient, string memory name, string memory description, string memory website) public {
-        proposeBorkTaxRecipient(recipient);
+        addBorkTaxRecipient(recipient);
         potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
     }
 
