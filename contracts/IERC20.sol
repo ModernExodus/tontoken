@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: <SPDX-License> TODO BEFORE PUBLISHING
-pragma solidity 0.8.4;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
 // interface as defined at https://eips.ethereum.org/EIPS/eip-20
 interface ERC20 {
