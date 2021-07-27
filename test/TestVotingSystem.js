@@ -164,16 +164,4 @@ contract('Voting System', async accounts => {
         assert.strictEqual(winnerTransactionLogs[0].args.winner, accounts[2]);
         assert.strictEqual(winnerTransactionLogs[0].args.numVotes.toNumber(), 2);
     });
-
-    it('should not allow more candidates than the max allowed', async () => {
-        await vs.addCandidateP(accounts[0], accounts[1]);
-        await vs.addCandidateP(accounts[1], accounts[2]);
-        await vs.addCandidateP(accounts[2], accounts[3]);
-        await vs.addCandidateP(accounts[3], accounts[4]);
-        await vs.addCandidateP(accounts[4], accounts[5]);
-        await vs.addCandidateP(accounts[5], accounts[6]);
-        await vs.addCandidateP(accounts[6], accounts[7]);
-        await vs.addCandidateP(accounts[7], accounts[8]);
-        await assertVmException(vs.addCandidateP, accounts[8], accounts[9]);
-    });
 });
