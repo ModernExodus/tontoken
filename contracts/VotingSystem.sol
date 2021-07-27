@@ -24,7 +24,6 @@ contract VotingSystem is UniqueKeyGenerator {
     enum VotingStatus { INACTIVE, PAUSE, ACTIVE }
     address internal latestWinner;
     uint256 internal numVotesHeld;
-    uint16 internal maxCandidates;
 
     event VotingActive(uint256 votingSessionNumber);
     event VotingInactive(address winner, uint256 numVotes);
@@ -33,9 +32,8 @@ contract VotingSystem is UniqueKeyGenerator {
     event VoteUncontested(address winner);
     event VoteCounted(address indexed voter, address indexed vote);
 
-    constructor (uint16 _maxCandidates) {
+    constructor () {
         currentStatus = VotingStatus.INACTIVE;
-        maxCandidates = _maxCandidates;
     }
 
     // START -> voting is active
@@ -74,12 +72,11 @@ contract VotingSystem is UniqueKeyGenerator {
         emit VotingInactive(currentLeader, currentLeaderVotes);
         latestWinner = currentLeader;
         resetVotingState();
-        return currentLeader;
+        return latestWinner;
     }
 
     function addCandidate(address candidate, address proposer) internal {
         assert(currentStatus == VotingStatus.INACTIVE);
-        require(candidates.length < maxCandidates);
         bytes32 proposerKey = generateKey(proposer);
         bytes32 candidateKey = generateKey(candidate);
         require(!addedProposal[proposerKey] && !isCandidate[candidateKey]);

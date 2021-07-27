@@ -31,7 +31,7 @@ contract Tontoken is ERC20, VotingSystem {
 
     event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
 
-    constructor(bool publicNet) VotingSystem(publicNet ? 256 : 8) {
+    constructor(bool publicNet) {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
         borkTaxRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
