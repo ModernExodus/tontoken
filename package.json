@@ -7,6 +7,12 @@
     "test": "test"
   },
   "scripts": {
+    "compile": "truffle compile",
+    "compile:all": "truffle compile --all",
+    "migrate:develop": "truffle migrate --network develop",
+    "migrate:ganache": "truffle migrate --network ganacheDevelopment",
+    "migrate:develop:reset": "truffle migrate --reset --network develop",
+    "migrate:ganache:reset": "truffle migrate --reset --network ganacheDevelopment",
     "start": "truffle develop",
     "console:ganache": "truffle console --network ganacheDevelopment",
     "test": "truffle test --network develop"
