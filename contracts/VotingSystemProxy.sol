@@ -53,6 +53,6 @@ contract VotingSystemProxy is VotingSystem {
     }
 
     function getNumVotes(address a) public view returns (uint256) {
-        return votes[a];
+        return votes[generateKey(a)];
     }
 }

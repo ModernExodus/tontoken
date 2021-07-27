@@ -8,9 +8,12 @@ contract VotingSystem is UniqueKeyGenerator {
     mapping(bytes32 => bool) internal isCandidate;
     
     // candidates
-    mapping(address => uint256) internal votes;
     address[] internal candidates;
-    
+    mapping(bytes32 => uint256) internal votes;
+    address internal currentLeader;
+    uint256 internal currentLeaderVotes;
+    bool internal currentlyTied;
+
     // voters
     mapping(bytes32 => bool) internal voted;
 
@@ -58,21 +61,20 @@ contract VotingSystem is UniqueKeyGenerator {
     // INACTIVE -> voting is over, winner is determined, and options are reset
     function stopVoting() internal returns (address winner) {
         assert(currentStatus == VotingStatus.ACTIVE);
-        (address _winner, uint256 _numVotes, bool _tied) = determineWinner();
-        if (_winner == address(0)) {
+        if (currentLeader == address(0)) {
             currentStatus = VotingStatus.INACTIVE;
             emit VotingPostponed("No votes cast");
             return address(0);
         }
-        if (_tied) {
+        if (currentlyTied) {
             emit VotingExtended();
             return address(0);
         }
         currentStatus = VotingStatus.INACTIVE;
-        emit VotingInactive(_winner, _numVotes);
-        latestWinner = _winner;
+        emit VotingInactive(currentLeader, currentLeaderVotes);
+        latestWinner = currentLeader;
         resetVotingState();
-        return _winner;
+        return currentLeader;
     }
 
     function addCandidate(address candidate, address proposer) internal {
@@ -91,39 +93,27 @@ contract VotingSystem is UniqueKeyGenerator {
         bytes32 voteKey = generateKey(vote);
         bytes32 voterKey = generateKey(voter);
         require(!voted[voterKey] && isCandidate[voteKey]);
-        votes[vote]++;
+        votes[voteKey]++;
         voted[voterKey] = true;
+        adjustLeader(vote, votes[voteKey]);
         emit VoteCounted(voter, vote);
     }
 
-    // no-votes -> returns address(0), 0
-    // tie -> returns third bool true
-    function determineWinner() private view returns (address winner, uint256 numVotes, bool tie) {
-        address currentLeader;
-        uint256 currentMaxVotes;
-        uint16 winningIndex;
-        bool _tie;
-        for (uint16 i = 0; i < candidates.length; i++) {
-            if (votes[candidates[i]] > currentMaxVotes) {
-                currentLeader = candidates[i];
-                currentMaxVotes = votes[candidates[i]];
-                winningIndex = i;
-            }
+    function adjustLeader(address vote, uint256 numVotes) private {
+        if (numVotes == currentLeaderVotes) {
+            currentlyTied = true;
+        } else if (numVotes > currentLeaderVotes) {
+            currentLeaderVotes = numVotes;
+            currentLeader = vote;
+            currentlyTied = false;
         }
-        for (uint16 i = 0; i < candidates.length; i++) {
-            if (i != winningIndex && votes[candidates[i]] == currentMaxVotes) {
-                _tie = true;
-                break;
-            }
-        }
-        return (currentLeader, currentMaxVotes, _tie);
     }
 
     function resetVotingState() private {
-        for (uint16 i = 0; i < candidates.length; i++) {
-            delete votes[candidates[i]];
-        }
         delete candidates;
+        delete currentLeader;
+        delete currentLeaderVotes;
+        delete currentlyTied;
         changeKeySalt();
     }
 }
