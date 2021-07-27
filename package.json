@@ -37,6 +37,7 @@
   },
   "homepage": "https://github.com/ModernExodus/tontoken#readme",
   "devDependencies": {
+    "@truffle/hdwallet-provider": "^1.4.2",
     "truffle": "^5.4.2"
   }
 }

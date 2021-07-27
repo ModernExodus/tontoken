@@ -1,11 +1,11 @@
 # Tontoken :dog: : A Decentralized Way of Helping Others
 Inspired by my adopted dog Tonto with the original goal of supporting animal shelters, this tradable ERC20 token aims to give back to organizations suggested and voted on by users while still providing the opportunity for cyrpto traders to make big profits.
 
-### Contract Address
-| Environment      | Address |
-| -----------      | ----------- |
-| Mainnet          | TBD       |
-| Testnet          | TBD        |
+### Contract Addresses
+| Environment              | Address     |
+| -----------              | ----------- |
+| Mainnet                  | TBD         |
+| Ropsten Testnet          | TBD         |
 
 ## About
 ---
