@@ -1,0 +1,43 @@
+{
+  "name": "tontoken",
+  "version": "1.0.0",
+  "description": "A tradable ERC20 token that raises funds for community-selected organizations as part of its protocol.",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "compile": "truffle compile",
+    "compile:all": "truffle compile --all",
+    "migrate:develop": "truffle migrate --network develop",
+    "migrate:ganache": "truffle migrate --network ganacheDevelopment",
+    "migrate:develop:reset": "truffle migrate --reset --network develop",
+    "migrate:ganache:reset": "truffle migrate --reset --network ganacheDevelopment",
+    "start": "truffle develop",
+    "console:ganache": "truffle console --network ganacheDevelopment",
+    "test": "truffle test --network develop"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ModernExodus/tontoken.git"
+  },
+  "keywords": [
+    "ethereum",
+    "erc20",
+    "erc20-token",
+    "blockchain",
+    "truffle",
+    "solidity",
+    "charitable"
+  ],
+  "author": "John Washburn",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ModernExodus/tontoken/issues"
+  },
+  "homepage": "https://github.com/ModernExodus/tontoken#readme",
+  "devDependencies": {
+    "@truffle/hdwallet-provider": "^1.4.2",
+    "truffle": "^5.4.2"
+  }
+}
