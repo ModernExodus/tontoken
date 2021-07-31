@@ -65,8 +65,11 @@ Tontoken bridges the gap between crypto daytraders and those who are struggling 
 Tonto is my adopted dog and the inspiration for Tontoken. He was a neglected little dude who just needed some love, care, and lots of food. I thought of Tontoken when I was trying to create a way for animal shelters to be able to receive donations without anyone having to explicitly donate. Many people don't know how to donate, and many others don't want to put forth the time and effort. Suddenly, ideas took root: Why not create a currency that donates itself? Why limit the donations to animal shelters? Why not help anyone the community deems worthy? Tontoken: the Tonto-approved token.
 
 <div style="display: inline-block;">
-   <img src="./images/tonto_birthday.jpg" alt="Tonto's birthday party" width="200" height="200">
+   <img src="./images/tonto_birthday.png" alt="Tonto's birthday party" width="200" height="200">
    <img src="./images/playful_tonto.png" alt="Tonto in a playful mood" width="200" height="200">
-   <img src="./images/cone_of_shame_tonto.jpg" alt="Tonto in the cone of shame" width="200" height="200">
-   <img src="./images/furry_tonto.jpg" alt="Furry Tonto" width="200" height="200">
+   <img src="./images/cone_of_shame_tonto.png" alt="Tonto in the cone of shame" width="200" height="200">
+   <img src="./images/furry_tonto.png" alt="Furry Tonto" width="200" height="200">
+   <img src="./images/sleepy_tonto.png" alt="Tonto sleeping on the bed" width="200" height="400">
+   <img src="./images/patient_tonto.jpg" alt="Tonto sitting and waiting" width="200" height="400">
+   <img src="./images/tonto_bad_timing.jpg" alt="Tonto caught mid-sneeze" width="200" height="400">
 </div>
