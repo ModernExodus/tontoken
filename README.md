@@ -1,4 +1,4 @@
-# Tontoken :dog: : A Decentralized Way of Helping Others
+# Tontoken: A Decentralized Way of Helping Others <img src="./images/tontoken.png" alt="Tontoken logo" width="200" height="100">
 Inspired by my adopted dog Tonto with the original goal of supporting animal shelters, this tradable ERC20 token aims to give back to organizations suggested and voted on by users while still providing the opportunity for cyrpto traders to make big profits.
 
 ### Contract Addresses
@@ -60,3 +60,13 @@ Tontoken bridges the gap between crypto daytraders and those who are struggling 
 * There is nothing stopping someone from suggesting themselves to increase their own holdings
 * An active community will ensure the winners of the Bork Pools are deserving of the funds they receive
     * Who doesn't like helping those in need while making BANK :dollar::chart:?!?!
+
+## Who is Tonto?
+Tonto is my adopted dog and the inspiration for Tontoken. He was a neglected little dude who just needed some love, care, and lots of food. I thought of Tontoken when I was trying to create a way for animal shelters to be able to receive donations without anyone having to explicitly donate. Many people don't know how to donate, and many others don't want to put forth the time and effort. Suddenly, ideas took root: Why not create a currency that donates itself? Why limit the donations to animal shelters? Why not help anyone the community deems worthy? Tontoken: the Tonto-approved token.
+
+<div style="display: inline-block;">
+   <img src="./images/tonto_birthday.jpg" alt="Tonto's birthday party" width="200" height="200">
+   <img src="./images/playful_tonto.png" alt="Tonto in a playful mood" width="200" height="200">
+   <img src="./images/cone_of_shame_tonto.jpg" alt="Tonto in the cone of shame" width="200" height="200">
+   <img src="./images/furry_tonto.jpg" alt="Furry Tonto" width="200" height="200">
+</div>
