@@ -150,9 +150,9 @@ contract Tontoken is ERC20, VotingSystem {
         potentialRecipients.push(BorkTaxRecipient(recipient, "", "", ""));
     }
 
-    function proposeBorkTaxRecipient(address recipient, string memory name, string memory description, string memory website) public {
+    function proposeBorkTaxRecipient(address recipient, string memory _name, string memory description, string memory website) public {
         addBorkTaxRecipient(recipient);
-        potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
+        potentialRecipients.push(BorkTaxRecipient(recipient, _name, description, website));
     }
 
     function getLockedBorks(address owner) public view returns (uint256) {
