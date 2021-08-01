@@ -29,6 +29,12 @@ contract Tontoken is ERC20, VotingSystem {
     uint256 private numBlocks7Days;
     uint256 private numBlocks1Day;
 
+    // constants
+    string constant insufficientFundsMsg = "Insufficient funds to complete the transfer";
+    string constant cannotSendToZeroMsg = "Funds cannot be burned (sent to the zero address)";
+    string constant insufficientAllowanceMsg = "The allowance of the transaction sender is insufficient to complete the transfer";
+    string constant zeroDonationMsg = "Donations must be greater than or equal to 1 Bork";
+
     event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
 
     constructor(bool publicNet) {
@@ -68,16 +74,15 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function transfer(address _to, uint256 _value) override public returns (bool) {
-        require(getSendableBalance(msg.sender) >= _value && _to != address(0));
+        validateTransfer(msg.sender, _to, _value);
         executeTransfer(msg.sender, _to, _value);
         orchestrateVoting();
         return true;
     }
     
     function transferFrom(address _from, address _to, uint256 _value) override public returns (bool) {
-        require(allowed[msg.sender][_from] >= _value);
-        require(getSendableBalance(_from) >= _value);
-        require(_to != address(0));
+        require(allowed[msg.sender][_from] >= _value, insufficientAllowanceMsg);
+        validateTransfer(_from, _to, _value);
         allowed[msg.sender][_from] -= _value;
         executeTransfer(_from, _to, _value);
         orchestrateVoting();
@@ -109,6 +114,11 @@ contract Tontoken is ERC20, VotingSystem {
         balances[to] += value;
         emit Transfer(from, to, value);
         adjustTotalSupply(tax);
+    }
+
+    function validateTransfer(address from, address to, uint256 value) private view {
+        require(getSendableBalance(from) >= value, insufficientFundsMsg);
+        require(to != address(0), cannotSendToZeroMsg);
     }
 
     function applyBorkTax(uint256 value, address from, address to) private returns (uint256 tax) {
@@ -196,8 +206,8 @@ contract Tontoken is ERC20, VotingSystem {
             if (!active && winner != address(0)) {
                 // uncontested winner
                 distributeBorkTax(winner);
+                delete potentialRecipients;
             }
-            delete potentialRecipients;
             lastVotingBlock = block.number;
         } else if (shouldEndVoting()) {
             address winner = super.stopVoting();
@@ -217,9 +227,9 @@ contract Tontoken is ERC20, VotingSystem {
         return currentStatus;
     }
 
-    // function donateBorks(uint256 value) public {
-    //     require(value != 0);
-    //     require(balances[msg.sender] >= value);
-    //     executeTransfer(msg.sender, address(this), value);
-    // }
+    function donate(uint256 value) public {
+        require(value != 0, zeroDonationMsg);
+        validateTransfer(msg.sender, address(this), value);
+        executeTransfer(msg.sender, address(this), value);
+    }
 }
