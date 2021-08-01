@@ -7,20 +7,20 @@ import "./VotingSystem.sol";
 contract Tontoken is ERC20, VotingSystem {
     // fields to help the contract operate
     uint256 private _totalSupply;
-    uint256 private allTimeTaxCollected;
-    uint8 private borkTaxRateShift; // percent of each transaction to be held by contract for eventual donation
+    uint256 private allTimeMatchAmount;
+    uint8 private borkMatchRateShift; // percent of each transaction to be held by contract for eventual donation
     mapping(address => uint256) private balances;
     mapping(address => mapping(address => uint256)) private allowed;
 
     // fields to help with voting
     // struct with information about candidate
-    struct BorkTaxRecipient {
+    struct BorkPoolRecipient {
         address addr;
         string name; // optional
         string description; // optional
         string website; // optional
     }
-    BorkTaxRecipient[] private potentialRecipients;
+    BorkPoolRecipient[] private potentialRecipients;
 
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
@@ -29,17 +29,17 @@ contract Tontoken is ERC20, VotingSystem {
     uint256 private numBlocks7Days;
     uint256 private numBlocks1Day;
 
+    event BorksMatched(address indexed from, address indexed to, uint256 amount, uint256 matched);
+    
     // constants
     string constant insufficientFundsMsg = "Insufficient funds to complete the transfer";
     string constant cannotSendToZeroMsg = "Funds cannot be burned (sent to the zero address)";
     string constant insufficientAllowanceMsg = "The allowance of the transaction sender is insufficient to complete the transfer";
     string constant zeroDonationMsg = "Donations must be greater than or equal to 1 Bork";
 
-    event BorksTaxed(address indexed from, address indexed to, uint256 amount, uint256 taxesPaid);
-
     constructor(bool publicNet) {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
-        borkTaxRateShift = 6; // ~1.5% (+- 64 borks)
+        borkMatchRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
         minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
         minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
@@ -105,15 +105,15 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function executeTransfer(address from, address to, uint256 value) private {
-        uint256 tax;
+        uint256 matched;
         if (from != address(this)) {
-            // don't apply bork tax on tax withdrawals
-            tax = applyBorkTax(value, from, to);
+            // don't apply bork match on bork pool withdrawals
+            matched = applyBorkMatch(value, from, to);
         }
         balances[from] -= value;
         balances[to] += value;
         emit Transfer(from, to, value);
-        adjustTotalSupply(tax);
+        mintBorks(matched);
     }
 
     function validateTransfer(address from, address to, uint256 value) private view {
@@ -121,24 +121,24 @@ contract Tontoken is ERC20, VotingSystem {
         require(to != address(0), cannotSendToZeroMsg);
     }
 
-    function applyBorkTax(uint256 value, address from, address to) private returns (uint256 tax) {
-        uint256 taxed;
+    function applyBorkMatch(uint256 value, address from, address to) private returns (uint256 matchAmt) {
+        uint256 matched;
         if (value < 64) {
-            taxed = 1;
+            matched = 1;
         } else {
-            taxed = value >> borkTaxRateShift;
+            matched = value >> borkMatchRateShift;
         }
-        balances[address(this)] += taxed;
-        allTimeTaxCollected += taxed;
-        emit BorksTaxed(from, to, value, taxed);
-        return taxed;
+        balances[address(this)] += matched;
+        allTimeMatchAmount += matched;
+        emit BorksMatched(from, to, value, matched);
+        return matched;
     }
 
-    function adjustTotalSupply(uint256 supplyToAdd) private {
-        _totalSupply += supplyToAdd;
+    function mintBorks(uint256 numBorks) private {
+        _totalSupply += numBorks;
     }
 
-    function collectedTaxes() public view returns (uint256) {
+    function borkPool() public view returns (uint256) {
         return balanceOf(address(this));
     }
 
@@ -148,21 +148,21 @@ contract Tontoken is ERC20, VotingSystem {
         super.voteForCandidate(vote, msg.sender);
     }
 
-    function addBorkTaxRecipient(address recipient) private {
+    function addBorkPoolRecipient(address recipient) private {
         require(balanceOf(msg.sender) >= minProposalThreshold);
         require(recipient != address(0));
         lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);
     }
 
-    function proposeBorkTaxRecipient(address recipient) public {
-        addBorkTaxRecipient(recipient);
-        potentialRecipients.push(BorkTaxRecipient(recipient, "", "", ""));
+    function proposeBorkPoolRecipient(address recipient) public {
+        addBorkPoolRecipient(recipient);
+        potentialRecipients.push(BorkPoolRecipient(recipient, "", "", ""));
     }
 
-    function proposeBorkTaxRecipient(address recipient, string memory name, string memory description, string memory website) public {
-        addBorkTaxRecipient(recipient);
-        potentialRecipients.push(BorkTaxRecipient(recipient, name, description, website));
+    function proposeBorkPoolRecipient(address recipient, string memory _name, string memory description, string memory website) public {
+        addBorkPoolRecipient(recipient);
+        potentialRecipients.push(BorkPoolRecipient(recipient, _name, description, website));
     }
 
     function getLockedBorks(address owner) public view returns (uint256) {
@@ -202,24 +202,24 @@ contract Tontoken is ERC20, VotingSystem {
     // handles starting and stopping of voting sessions
     function orchestrateVoting() private {
         if (shouldStartVoting()) {
-            (bool active, address winner) = super.startVoting();
-            if (!active && winner != address(0)) {
+            (StartVotingOutcome outcome, address winner) = super.startVoting();
+            if (outcome == StartVotingOutcome.UNCONTESTED) {
                 // uncontested winner
-                distributeBorkTax(winner);
+                distributeBorkPool(winner);
                 delete potentialRecipients;
             }
             lastVotingBlock = block.number;
         } else if (shouldEndVoting()) {
-            address winner = super.stopVoting();
-            if (winner != address(0)) {
-                distributeBorkTax(winner);
+            (StopVotingOutcome outcome, address winner) = super.stopVoting();
+            if (outcome == StopVotingOutcome.STOPPED) {
+                distributeBorkPool(winner);
                 delete potentialRecipients;
             }
             lastVotingBlock = block.number;
         }
     }
 
-    function distributeBorkTax(address recipient) private {
+    function distributeBorkPool(address recipient) private {
         executeTransfer(address(this), recipient, balanceOf(address(this)));
     }
 

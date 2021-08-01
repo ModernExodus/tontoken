@@ -88,8 +88,8 @@ contract('Tontoken', async accounts => {
     it('should start voting if ~7 days worth of blocks have been mined', async () => {
         const startStatus = (await token.getVotingStatus.call()).toNumber();
         await token.transfer.sendTransaction(accounts[2], convertToBorks(50000), { from: accounts[0]});
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[3], { from: accounts[2] });
         await mineBlocks(7);
         await token.transfer.sendTransaction(accounts[1], 10000, { from: accounts[0] });
         const endStatus = (await token.getVotingStatus.call()).toNumber();
@@ -100,8 +100,8 @@ contract('Tontoken', async accounts => {
     it('should end voting if voting has been ongoing for at least ~1 day', async () => {
         const startStatus = (await token.getVotingStatus.call()).toNumber();
         await token.transfer.sendTransaction(accounts[2], convertToBorks(50000), { from: accounts[0]});
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[3], { from: accounts[2] });
         await mineBlocks(7);
         await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
         const middleStatus = (await token.getVotingStatus.call()).toNumber();
@@ -113,36 +113,36 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(endStatus, 0);
     });
 
-    it('should distribute the bork taxes to the uncontested winner if there was only 1 candidate', async () => {
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+    it('should distribute the bork pool to the uncontested winner if there was only 1 candidate', async () => {
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
         await token.transfer.sendTransaction(accounts[2], 5000, { from: accounts[0] });
         await mineBlocks(8);
-        const taxPoolBefore = (await token.balanceOf.call(token.address)).toNumber();
+        const poolBefore = (await token.balanceOf.call(token.address)).toNumber();
         await token.transfer.sendTransaction(accounts[2], 5000, { from: accounts[0] });
-        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        const poolAfter = (await token.balanceOf.call(token.address)).toNumber();
         const winnerBalance = (await token.balanceOf.call(accounts[1])).toNumber();
-        assert.strictEqual(winnerBalance, taxPoolBefore * 2);
-        assert.strictEqual(taxPoolAfter, 0);
+        assert.strictEqual(winnerBalance, poolBefore * 2);
+        assert.strictEqual(poolAfter, 0);
     });
 
-    it('should not distribute the bork taxes if there were no candidates', async () => {
+    it('should not distribute the bork pool if there were no candidates', async () => {
         await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
         await mineBlocks(8);
-        const taxPoolBefore = (await token.balanceOf.call(token.address)).toNumber();
+        const poolBefore = (await token.balanceOf.call(token.address)).toNumber();
         await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
-        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
-        assert.strictEqual(taxPoolAfter, taxPoolBefore * 2);
+        const poolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        assert.strictEqual(poolAfter, poolBefore * 2);
     });
 
-    it('should distribute the bork taxes to the winner of the voting session', async () => {
+    it('should distribute the bork pool to the winner of the voting session', async () => {
         // setup votes
         for (const account of accounts) {
             await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
         }
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[2], { from: accounts[1] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[4], { from: accounts[3] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[4], { from: accounts[3] });
         await mineBlocks(7);
         await token.transfer.sendTransaction(accounts[4], 100, { from: accounts[0] });
 
@@ -164,26 +164,26 @@ contract('Tontoken', async accounts => {
         await token.enterVote.sendTransaction(accounts[4], { from: accounts[9] });
 
         // end voting
-        const taxPool = (await token.balanceOf.call(token.address)).toNumber();
+        const pool = (await token.balanceOf.call(token.address)).toNumber();
         const winnerBalanceBefore = (await token.balanceOf.call(accounts[4])).toNumber();
         await token.transfer.sendTransaction(accounts[5], 64, { from: accounts[0] });
-        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        const poolAfter = (await token.balanceOf.call(token.address)).toNumber();
         const winnerBalanceAfter = (await token.balanceOf.call(accounts[4])).toNumber();
         
         // assert
-        assert.strictEqual(taxPoolAfter, 0);
-        assert.strictEqual(winnerBalanceAfter, winnerBalanceBefore + taxPool + 1);
+        assert.strictEqual(poolAfter, 0);
+        assert.strictEqual(winnerBalanceAfter, winnerBalanceBefore + pool + 1);
     });
 
-    it('should not distribute the bork taxes if there was a tie', async () => {
+    it('should not distribute the bork pool if there was a tie', async () => {
         // setup votes
         for (const account of accounts) {
             await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
         }
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[2], { from: accounts[1] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[4], { from: accounts[3] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[4], { from: accounts[3] });
         await mineBlocks(7);
         await token.transfer.sendTransaction(accounts[4], 100, { from: accounts[0] });
 
@@ -203,16 +203,16 @@ contract('Tontoken', async accounts => {
         await token.enterVote.sendTransaction(accounts[4], { from: accounts[9] });
 
         // end voting
-        const taxPool = (await token.balanceOf.call(token.address)).toNumber();
+        const pool = (await token.balanceOf.call(token.address)).toNumber();
         const account2BalanceBefore = (await token.balanceOf.call(accounts[2])).toNumber();
         const account4BalanceBefore = (await token.balanceOf.call(accounts[4])).toNumber();
         await token.transfer.sendTransaction(accounts[5], 64, { from: accounts[0] });
-        const taxPoolAfter = (await token.balanceOf.call(token.address)).toNumber();
+        const poolAfter = (await token.balanceOf.call(token.address)).toNumber();
         const account2BalanceAfter = (await token.balanceOf.call(accounts[2])).toNumber();
         const account4BalanceAfter = (await token.balanceOf.call(accounts[4])).toNumber();
 
         // assert
-        assert.strictEqual(taxPoolAfter, taxPool + 1);
+        assert.strictEqual(poolAfter, pool + 1);
         assert.strictEqual(account2BalanceBefore, account2BalanceAfter);
         assert.strictEqual(account4BalanceBefore, account4BalanceAfter);
     });
@@ -222,9 +222,9 @@ contract('Tontoken', async accounts => {
          for (const account of accounts) {
             await token.transfer.sendTransaction(account, convertToBorks(50000), { from: accounts[0] });
         }
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[1], { from: accounts[0] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[2], { from: accounts[1] });
-        await token.proposeBorkTaxRecipient.sendTransaction(accounts[3], { from: accounts[2] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[3], { from: accounts[2] });
         await mineBlocks(7);
         await token.transfer.sendTransaction(accounts[4], 100, { from: accounts[0] });
 
