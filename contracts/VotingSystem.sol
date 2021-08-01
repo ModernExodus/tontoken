@@ -22,6 +22,8 @@ contract VotingSystem is UniqueKeyGenerator {
 
     VotingStatus internal currentStatus;
     enum VotingStatus { INACTIVE, PAUSE, ACTIVE }
+    enum StartVotingOutcome { STARTED, UNCONTESTED, NO_CANDIDATES }
+    enum StopVotingOutcome { STOPPED, NO_VOTES, TIE }
     address internal latestWinner;
     uint256 internal numVotesHeld;
 
@@ -37,42 +39,42 @@ contract VotingSystem is UniqueKeyGenerator {
     }
 
     // START -> voting is active
-    function startVoting() internal returns (bool votingActive, address uncontestedWinner) {
+    function startVoting() internal returns (StartVotingOutcome outcome, address winner) {
         assert(currentStatus == VotingStatus.INACTIVE);
         if (candidates.length != 0 && candidates.length > 1) {
             currentStatus = VotingStatus.ACTIVE;
             numVotesHeld++;
             emit VotingActive(numVotesHeld);
-            return (true, address(0));
+            return (StartVotingOutcome.STARTED, address(0));
         }
         if (candidates.length == 1) {
             numVotesHeld++;
             latestWinner = candidates[0];
             emit VoteUncontested(latestWinner);
             resetVotingState();
-            return (false, latestWinner);
+            return (StartVotingOutcome.UNCONTESTED, latestWinner);
         }
         emit VotingPostponed("No candidates");
-        return (false, address(0));
+        return (StartVotingOutcome.NO_CANDIDATES, address(0));
     }
 
     // INACTIVE -> voting is over, winner is determined, and options are reset
-    function stopVoting() internal returns (address winner) {
+    function stopVoting() internal returns (StopVotingOutcome outcome, address winner) {
         assert(currentStatus == VotingStatus.ACTIVE);
         if (currentLeader == address(0)) {
             currentStatus = VotingStatus.INACTIVE;
             emit VotingPostponed("No votes cast");
-            return address(0);
+            return (StopVotingOutcome.NO_VOTES, address(0));
         }
         if (currentlyTied) {
             emit VotingExtended();
-            return address(0);
+            return (StopVotingOutcome.TIE, address(0));
         }
         currentStatus = VotingStatus.INACTIVE;
         emit VotingInactive(currentLeader, currentLeaderVotes);
         latestWinner = currentLeader;
         resetVotingState();
-        return latestWinner;
+        return (StopVotingOutcome.STOPPED, latestWinner);
     }
 
     function addCandidate(address candidate, address proposer) internal {

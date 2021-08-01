@@ -108,7 +108,7 @@ contract Tontoken is ERC20, VotingSystem {
         balances[from] -= value;
         balances[to] += value;
         emit Transfer(from, to, value);
-        adjustTotalSupply(tax);
+        mintBorks(tax);
     }
 
     function applyBorkTax(uint256 value, address from, address to) private returns (uint256 tax) {
@@ -124,8 +124,8 @@ contract Tontoken is ERC20, VotingSystem {
         return taxed;
     }
 
-    function adjustTotalSupply(uint256 supplyToAdd) private {
-        _totalSupply += supplyToAdd;
+    function mintBorks(uint256 numBorks) private {
+        _totalSupply += numBorks;
     }
 
     function collectedTaxes() public view returns (uint256) {
@@ -192,16 +192,16 @@ contract Tontoken is ERC20, VotingSystem {
     // handles starting and stopping of voting sessions
     function orchestrateVoting() private {
         if (shouldStartVoting()) {
-            (bool active, address winner) = super.startVoting();
-            if (!active && winner != address(0)) {
+            (StartVotingOutcome outcome, address winner) = super.startVoting();
+            if (outcome == StartVotingOutcome.UNCONTESTED) {
                 // uncontested winner
                 distributeBorkTax(winner);
             }
             delete potentialRecipients;
             lastVotingBlock = block.number;
         } else if (shouldEndVoting()) {
-            address winner = super.stopVoting();
-            if (winner != address(0)) {
+            (StopVotingOutcome outcome, address winner) = super.stopVoting();
+            if (outcome == StopVotingOutcome.STOPPED) {
                 distributeBorkTax(winner);
                 delete potentialRecipients;
             }
