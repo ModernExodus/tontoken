@@ -35,3 +35,7 @@ module.exports.convertToBorks = function(tontokens) {
 module.exports.convertToTontokens = function(borks) {
     return borks / 1000000;
 };
+
+module.exports.calculateBorkMatch = function(borks) {
+    return borks >= 64 ? Math.floor(borks / 64) : 1;
+};
