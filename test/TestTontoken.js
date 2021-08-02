@@ -1,4 +1,8 @@
-const { assertVmException, convertToTontokens, convertToBorks, mineBlocks } = require('./test-utils.js');
+const { assertVmException,
+        convertToTontokens,
+        convertToBorks,
+        mineBlocks,
+        calculateBorkMatch } = require('./test-utils.js');
 
 const Tontoken = artifacts.require("Tontoken");
 
@@ -266,5 +270,41 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(account3LockedAfter, account3LockedBefore);
         assert.strictEqual(account4LockedAfter, account4LockedBefore);
         assert.strictEqual(account5LockedAfter, account5LockedBefore);
+    });
+
+    it('should accept donations even without a transfer', async () => {
+        const amountToDonate = convertToBorks(942902);
+        const poolBefore = (await token.borkPool.call()).toNumber();
+        await token.donate.sendTransaction(amountToDonate);
+        const poolAfter = (await token.borkPool.call()).toNumber();
+        assert.strictEqual(poolBefore, 0);
+        assert.strictEqual(poolAfter, amountToDonate + calculateBorkMatch(amountToDonate));
+    });
+
+    it('should correctly match transfers and add to the bork pool', async () => {
+        let borkPool = (await token.borkPool.call()).toNumber();
+        const borksToTransfer = [
+            convertToBorks(100),
+            convertToBorks(500),
+            convertToBorks(73242),
+            convertToBorks(3892),
+            convertToBorks(4567),
+            convertToBorks(9644),
+            convertToBorks(5555),
+            convertToBorks(13),
+            convertToBorks(7)
+        ];
+        for (const transfer of borksToTransfer) {
+            const borkPoolBefore = borkPool;
+            await token.transfer.sendTransaction(accounts[1], transfer);
+            borkPool = (await token.borkPool.call()).toNumber();
+            const diff = borkPool - borkPoolBefore;
+            assert.strictEqual(diff, calculateBorkMatch(transfer));
+        }
+        let expectedBorkPool = 0;
+        for (const transfer of borksToTransfer) {
+            expectedBorkPool += calculateBorkMatch(transfer);
+        }
+        assert.strictEqual(borkPool, expectedBorkPool);
     });
 });

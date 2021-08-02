@@ -189,6 +189,14 @@ contract Tontoken is ERC20, VotingSystem {
         return minProposalThreshold;
     }
 
+    function getBorkPoolCandidates() public view returns (BorkPoolRecipient[] memory) {
+        return potentialRecipients;
+    }
+
+    function getBorkPoolCandidateAddresses() public view returns (address[] memory) {
+        return candidates;
+    }
+
     // 1 block every ~15 seconds -> 40320 blocks -> ~ 7 days
     function shouldStartVoting() private view returns (bool) {
         return currentStatus == VotingStatus.INACTIVE && block.number - lastVotingBlock >= numBlocks7Days;
