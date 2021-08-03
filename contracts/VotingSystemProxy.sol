@@ -17,6 +17,8 @@ contract VotingSystemProxy is VotingSystem {
         return _winner;
     }
 
+    function postVoteCleanUp() override internal {}
+
     function addCandidateP(address candidate, address proposer) public {
         super.addCandidate(candidate, proposer);
     }

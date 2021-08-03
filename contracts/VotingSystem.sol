@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./UniqueKeyGenerator.sol";
 
-contract VotingSystem is UniqueKeyGenerator {
+abstract contract VotingSystem is UniqueKeyGenerator {
     // fields to help with voting
     mapping(bytes32 => bool) internal isCandidate;
     
@@ -117,5 +117,8 @@ contract VotingSystem is UniqueKeyGenerator {
         vc.id = currentVotingCycle.id + 1;
         currentVotingCycle = vc;
         changeKeySalt();
+        postVoteCleanUp();
     }
+
+    function postVoteCleanUp() internal virtual;
 }
