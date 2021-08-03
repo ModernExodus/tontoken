@@ -116,7 +116,7 @@ abstract contract VotingSystem is UniqueKeyGenerator {
         VotingCycle memory vc;
         vc.id = currentVotingCycle.id + 1;
         currentVotingCycle = vc;
-        changeKeySalt();
+        addSalt();
         postVoteCleanUp();
     }
 

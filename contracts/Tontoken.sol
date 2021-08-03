@@ -20,15 +20,8 @@ contract Tontoken is ERC20, VotingSystem {
         string description; // optional
         string website; // optional
     }
-
-    struct VotingState {
-        // potential recipients
-        address[] recipients;
-        string[] names;
-        string[] descriptions;
-        string[] websites;
-    }
-    VotingState currentState;
+    mapping(bytes32 => BorkPoolRecipient) private potentialRecipients;
+    uint256 numPotentialRecipients;
 
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
@@ -165,19 +158,17 @@ contract Tontoken is ERC20, VotingSystem {
 
     function proposeBorkPoolRecipient(address recipient) public {
         addBorkPoolRecipient(recipient);
-        appendBorkPoolRecipient(recipient, "", "", "");
+        appendBorkPoolRecipient(BorkPoolRecipient(recipient, "", "", ""));
     }
 
     function proposeBorkPoolRecipient(address recipient, string memory _name, string memory description, string memory website) public {
         addBorkPoolRecipient(recipient);
-        appendBorkPoolRecipient(recipient, _name, description, website);
+        appendBorkPoolRecipient(BorkPoolRecipient(recipient, _name, description, website));
     }
 
-    function appendBorkPoolRecipient(address recipient, string memory _name, string memory description, string memory website) private {
-        currentState.recipients.push(recipient);
-        currentState.names.push(_name);
-        currentState.descriptions.push(description);
-        currentState.websites.push(website);
+    function appendBorkPoolRecipient(BorkPoolRecipient memory recipient) private {
+        potentialRecipients[generateKey(numPotentialRecipients)] = recipient;
+        numPotentialRecipients++;
     }
 
     function getLockedBorks(address owner) public view returns (uint256) {
@@ -205,17 +196,11 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function getBorkPoolCandidates() public view returns (BorkPoolRecipient[] memory) {
-        uint256 numPotentialRecipients = currentState.recipients.length;
-        BorkPoolRecipient[] memory allPotentialRecipients = new BorkPoolRecipient[](numPotentialRecipients);
+        BorkPoolRecipient[] memory allRecipients = new BorkPoolRecipient[](numPotentialRecipients);
         for (uint256 i; i < numPotentialRecipients; i++) {
-            allPotentialRecipients[i] = BorkPoolRecipient({
-                addr: currentState.recipients[i],
-                name: currentState.names[i],
-                description: currentState.descriptions[i],
-                website: currentState.websites[i]
-            });
+            allRecipients[i] = potentialRecipients[generateKey(i)];
         }
-        return allPotentialRecipients;
+        return allRecipients;
     }
 
     function getBorkPoolCandidateAddresses() public view returns (address[] memory) {
@@ -258,8 +243,7 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function postVoteCleanUp() override internal {
-        VotingState memory freshState;
-        currentState = freshState;
+        delete numPotentialRecipients;
     }
 
     function donate(uint256 value) public {

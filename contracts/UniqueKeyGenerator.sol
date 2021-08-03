@@ -8,7 +8,12 @@ contract UniqueKeyGenerator {
         return keccak256(abi.encode(uint256(uint160(a)) + salt));
     }
 
-    function changeKeySalt() internal {
-        salt++;
+    function generateKey(uint256 u) public view returns (bytes32) {
+        return keccak256(abi.encode(u + salt));
+    }
+
+    // adds more salt -> makes duplicating keys near impossible
+    function addSalt() internal {
+        salt += 100000000;
     }
 }
