@@ -50,7 +50,7 @@ contract VotingSystemProxy is VotingSystem {
     }
 
     function getCandidates() public view returns (address[] memory) {
-        return candidates;
+        return currentVotingCycle.candidates;
     }
 
     function getNumVotes(address a) public view returns (uint256) {
