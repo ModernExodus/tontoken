@@ -17,6 +17,8 @@ contract VotingSystemProxy is VotingSystem {
         return _winner;
     }
 
+    function postVoteCleanUp() override internal {}
+
     function addCandidateP(address candidate, address proposer) public {
         super.addCandidate(candidate, proposer);
     }
@@ -50,7 +52,7 @@ contract VotingSystemProxy is VotingSystem {
     }
 
     function getCandidates() public view returns (address[] memory) {
-        return candidates;
+        return currentVotingCycle.candidates;
     }
 
     function getNumVotes(address a) public view returns (uint256) {

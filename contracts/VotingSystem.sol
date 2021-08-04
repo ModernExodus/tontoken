@@ -3,16 +3,20 @@ pragma solidity ^0.8.4;
 
 import "./UniqueKeyGenerator.sol";
 
-contract VotingSystem is UniqueKeyGenerator {
+abstract contract VotingSystem is UniqueKeyGenerator {
     // fields to help with voting
     mapping(bytes32 => bool) internal isCandidate;
     
     // candidates
-    address[] internal candidates;
     mapping(bytes32 => uint256) internal votes;
-    address internal currentLeader;
-    uint256 internal currentLeaderVotes;
-    bool internal currentlyTied;
+    struct VotingCycle {
+        uint256 id;
+        address[] candidates;
+        address leader;
+        uint256 leaderVotes;
+        bool tied;
+    }
+    VotingCycle internal currentVotingCycle;
 
     // voters
     mapping(bytes32 => bool) internal voted;
@@ -34,22 +38,24 @@ contract VotingSystem is UniqueKeyGenerator {
     event VoteUncontested(address winner);
     event VoteCounted(address indexed voter, address indexed vote);
 
-    constructor () {
-        currentStatus = VotingStatus.INACTIVE;
-    }
+    // constants
+    string constant duplicateCandidateMsg = "The proposed candidate has already been added.";
+    string constant alreadyAddedCandidateMsg = "The sender's address has already proposed a candidate";
+    string constant alreadyVotedMsg = "The sender's address has already voted this cycle";
+    string constant noMatchingCandidateMsg = "No matching candidate exists this voting cycle";
 
     // START -> voting is active
     function startVoting() internal returns (StartVotingOutcome outcome, address winner) {
         assert(currentStatus == VotingStatus.INACTIVE);
-        if (candidates.length != 0 && candidates.length > 1) {
+        if (currentVotingCycle.candidates.length != 0 && currentVotingCycle.candidates.length > 1) {
             currentStatus = VotingStatus.ACTIVE;
             numVotesHeld++;
             emit VotingActive(numVotesHeld);
             return (StartVotingOutcome.STARTED, address(0));
         }
-        if (candidates.length == 1) {
+        if (currentVotingCycle.candidates.length == 1) {
             numVotesHeld++;
-            latestWinner = candidates[0];
+            latestWinner = currentVotingCycle.candidates[0];
             emit VoteUncontested(latestWinner);
             resetVotingState();
             return (StartVotingOutcome.UNCONTESTED, latestWinner);
@@ -61,18 +67,18 @@ contract VotingSystem is UniqueKeyGenerator {
     // INACTIVE -> voting is over, winner is determined, and options are reset
     function stopVoting() internal returns (StopVotingOutcome outcome, address winner) {
         assert(currentStatus == VotingStatus.ACTIVE);
-        if (currentLeader == address(0)) {
+        if (currentVotingCycle.leader == address(0)) {
             currentStatus = VotingStatus.INACTIVE;
             emit VotingPostponed("No votes cast");
             return (StopVotingOutcome.NO_VOTES, address(0));
         }
-        if (currentlyTied) {
+        if (currentVotingCycle.tied) {
             emit VotingExtended();
             return (StopVotingOutcome.TIE, address(0));
         }
         currentStatus = VotingStatus.INACTIVE;
-        emit VotingInactive(currentLeader, currentLeaderVotes);
-        latestWinner = currentLeader;
+        emit VotingInactive(currentVotingCycle.leader, currentVotingCycle.leaderVotes);
+        latestWinner = currentVotingCycle.leader;
         resetVotingState();
         return (StopVotingOutcome.STOPPED, latestWinner);
     }
@@ -81,17 +87,19 @@ contract VotingSystem is UniqueKeyGenerator {
         assert(currentStatus == VotingStatus.INACTIVE);
         bytes32 proposerKey = generateKey(proposer);
         bytes32 candidateKey = generateKey(candidate);
-        require(!addedProposal[proposerKey] && !isCandidate[candidateKey]);
+        require(!addedProposal[proposerKey], alreadyAddedCandidateMsg);
+        require(!isCandidate[candidateKey], duplicateCandidateMsg);
         isCandidate[candidateKey] = true;
         addedProposal[proposerKey] = true;
-        candidates.push(candidate);
+        currentVotingCycle.candidates.push(candidate);
     }
 
     function voteForCandidate(address vote, address voter) internal {
         assert(currentStatus == VotingStatus.ACTIVE);
         bytes32 voteKey = generateKey(vote);
         bytes32 voterKey = generateKey(voter);
-        require(!voted[voterKey] && isCandidate[voteKey]);
+        require(!voted[voterKey], alreadyVotedMsg);
+        require(isCandidate[voteKey], noMatchingCandidateMsg);
         votes[voteKey]++;
         voted[voterKey] = true;
         adjustLeader(vote, votes[voteKey]);
@@ -99,20 +107,22 @@ contract VotingSystem is UniqueKeyGenerator {
     }
 
     function adjustLeader(address vote, uint256 numVotes) private {
-        if (numVotes == currentLeaderVotes) {
-            currentlyTied = true;
-        } else if (numVotes > currentLeaderVotes) {
-            currentLeaderVotes = numVotes;
-            currentLeader = vote;
-            currentlyTied = false;
+        if (numVotes == currentVotingCycle.leaderVotes) {
+            currentVotingCycle.tied = true;
+        } else if (numVotes > currentVotingCycle.leaderVotes) {
+            currentVotingCycle.leaderVotes = numVotes;
+            currentVotingCycle.leader = vote;
+            currentVotingCycle.tied = false;
         }
     }
 
     function resetVotingState() private {
-        delete candidates;
-        delete currentLeader;
-        delete currentLeaderVotes;
-        delete currentlyTied;
-        changeKeySalt();
+        VotingCycle memory vc;
+        vc.id = currentVotingCycle.id + 1;
+        currentVotingCycle = vc;
+        addSalt();
+        postVoteCleanUp();
     }
+
+    function postVoteCleanUp() internal virtual;
 }
