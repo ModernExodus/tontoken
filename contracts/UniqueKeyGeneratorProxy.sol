@@ -6,6 +6,6 @@ import "./UniqueKeyGenerator.sol";
 // proxy to interact with UniqueKeyGenerator for unit testing
 contract UniqueKeyGeneratorProxy is UniqueKeyGenerator {
     function changeSalt() public {
-        super.changeKeySalt();
+        super.addSalt();
     }
 }

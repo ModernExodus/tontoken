@@ -2,8 +2,8 @@ const { ethAddresses } = require('./address-data.js');
 
 const KeyGenerator = artifacts.require('UniqueKeyGeneratorProxy');
 
-// expect 2nd test to take about 1.5 minutes per 10 numSaltChanges
-const numSaltChanges = 25;
+// expect 2nd and 3rd tests to take about 1.5 minutes per 10 numSaltChanges
+const numSaltShakes = 25;
 contract('UniqueKeyGenerator', async accounts => {
     let keyGenerator;
     let keySet;
@@ -25,11 +25,24 @@ contract('UniqueKeyGenerator', async accounts => {
         assert.ok(keySet.has(dupKey));
     });
 
-    it('should not have a key collision as it changes salt', async () => {
+    it('should not have an address key collision as it changes salt', async () => {
         const addressList = ethAddresses.concat(accounts);
-        for (let i = 0; i < numSaltChanges; i++) {
+        for (let i = 0; i < numSaltShakes; i++) {
             for (const address of addressList) {
                 const genKey = await keyGenerator.generateKey.call(address);
+                if (keySet.has(genKey)) {
+                    assert.fail('Key collision');
+                }
+                keySet.add(genKey);
+            }
+            await keyGenerator.changeSalt.sendTransaction();
+        }
+    });
+
+    it('should not have a uint256 key collision as it changes salt', async () => {
+        for (let i = 0; i < numSaltShakes; i++) {
+            for (let j = 0; j < 50; j++) {
+                const genKey = await keyGenerator.methods['generateKey(uint256)'].call(j);
                 if (keySet.has(genKey)) {
                     assert.fail('Key collision');
                 }

@@ -38,9 +38,11 @@ abstract contract VotingSystem is UniqueKeyGenerator {
     event VoteUncontested(address winner);
     event VoteCounted(address indexed voter, address indexed vote);
 
-    constructor () {
-        currentStatus = VotingStatus.INACTIVE;
-    }
+    // constants
+    string constant duplicateCandidateMsg = "The proposed candidate has already been added.";
+    string constant alreadyAddedCandidateMsg = "The sender's address has already proposed a candidate";
+    string constant alreadyVotedMsg = "The sender's address has already voted this cycle";
+    string constant noMatchingCandidateMsg = "No matching candidate exists this voting cycle";
 
     // START -> voting is active
     function startVoting() internal returns (StartVotingOutcome outcome, address winner) {
@@ -85,7 +87,8 @@ abstract contract VotingSystem is UniqueKeyGenerator {
         assert(currentStatus == VotingStatus.INACTIVE);
         bytes32 proposerKey = generateKey(proposer);
         bytes32 candidateKey = generateKey(candidate);
-        require(!addedProposal[proposerKey] && !isCandidate[candidateKey]);
+        require(!addedProposal[proposerKey], alreadyAddedCandidateMsg);
+        require(!isCandidate[candidateKey], duplicateCandidateMsg);
         isCandidate[candidateKey] = true;
         addedProposal[proposerKey] = true;
         currentVotingCycle.candidates.push(candidate);
@@ -95,7 +98,8 @@ abstract contract VotingSystem is UniqueKeyGenerator {
         assert(currentStatus == VotingStatus.ACTIVE);
         bytes32 voteKey = generateKey(vote);
         bytes32 voterKey = generateKey(voter);
-        require(!voted[voterKey] && isCandidate[voteKey]);
+        require(!voted[voterKey], alreadyVotedMsg);
+        require(isCandidate[voteKey], noMatchingCandidateMsg);
         votes[voteKey]++;
         voted[voterKey] = true;
         adjustLeader(vote, votes[voteKey]);
