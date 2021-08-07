@@ -1,4 +1,4 @@
-const { convertHexToAscii, assertVmException } = require('./test-utils.js');
+const { assertVmException } = require('./test-utils.js');
 
 const VotingSystem = artifacts.require('VotingSystemProxy');
 
@@ -14,7 +14,7 @@ contract('Voting System', async accounts => {
         const transactionLog = transaction.logs[0];
         const numVotesHeld = (await vs.totalVoteSessionsHeld()).toNumber();
         assert.strictEqual(transactionLog.event, 'VotingPostponed');
-        assert.strictEqual(convertHexToAscii(transactionLog.args[0]),  'No candidates');
+        assert.strictEqual(transactionLog.args[0],  'No candidates');
         assert.strictEqual(numVotesHeld, 0);
     });
 
@@ -103,7 +103,7 @@ contract('Voting System', async accounts => {
         const transaction = await vs.stopVotingP();
         const transactionLog = transaction.logs[0];
         assert.strictEqual(transactionLog.event, 'VotingPostponed');
-        assert.strictEqual(convertHexToAscii(transactionLog.args[0]), 'No votes cast');
+        assert.strictEqual(transactionLog.args[0], 'No votes cast');
     });
 
     it('should extend voting if there is a tie', async () => {

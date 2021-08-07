@@ -44,7 +44,7 @@ contract Tontoken is ERC20, VotingSystem {
 
     constructor(bool publicNet) {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
-        borkMatchRateShift = 6; // ~1.5%
+        borkMatchRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
         minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
         minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
