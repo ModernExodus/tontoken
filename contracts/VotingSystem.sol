@@ -164,11 +164,11 @@ abstract contract VotingSystem is UniqueKeyGenerator {
         return currentVotingCycle.tied;
     }
 
-    function isEligibleToVote(address a) public view returns (bool) {
+    function hasAlreadyVoted(address a) public view returns (bool) {
         return voted[generateKey(a)];
     }
 
-    function canAddCandidate(address a) public view returns (bool) {
+    function hasAlreadyAddedCandidate(address a) public view returns (bool) {
         return addedProposal[generateKey(a)];
     }
 

@@ -164,4 +164,109 @@ contract('Voting System', async accounts => {
         assert.strictEqual(winnerTransactionLogs[0].args.winner, accounts[2]);
         assert.strictEqual(winnerTransactionLogs[0].args.numVotes.toNumber(), 2);
     });
+
+    it('should get the voting status', async () => {
+        assert.strictEqual((await vs.getVotingStatus.call()).toNumber(), 0);
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        assert.strictEqual((await vs.getVotingStatus.call()).toNumber(), 1);
+    });
+
+    it('should know whether voting is active', async () => {
+        assert.ok(!(await vs.isVotingActive.call()));
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        assert.ok(await vs.isVotingActive.call());
+    });
+
+    it('should know whether an address is a candidate', async () => {
+        await vs.addCandidateP(accounts[0], accounts[0]);
+        await vs.addCandidateP(accounts[1], accounts[1]);
+        assert.ok(await vs.getIsCandidate(accounts[0]));
+        assert.ok(await vs.getIsCandidate(accounts[1]));
+        assert.ok(!(await vs.getIsCandidate(accounts[2])));
+    });
+
+    it('should get the number of votes an address has', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        await vs.voteForCandidateP(accounts[0], accounts[1]);
+        await vs.voteForCandidateP(accounts[0], accounts[2]);
+        const numVotesAcc0 = (await vs.getNumberOfVotes(accounts[0])).toNumber();
+        const numVotesAcc1 = (await vs.getNumberOfVotes(accounts[1])).toNumber();
+        assert.strictEqual(numVotesAcc0, 2);
+        assert.strictEqual(numVotesAcc1, 0);
+    });
+
+    it('should get the current voting session leader', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        await vs.voteForCandidateP(accounts[0], accounts[1]);
+        await vs.voteForCandidateP(accounts[0], accounts[2]);
+        assert.strictEqual(await vs.getCurrentLeader(), accounts[0]);
+    });
+
+    it('should get the current leader vote count', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        await vs.voteForCandidateP(accounts[0], accounts[1]);
+        await vs.voteForCandidateP(accounts[0], accounts[2]);
+        assert.strictEqual((await vs.getCurrentLeaderVoteCount()).toNumber(), 2);
+    });
+
+    it('should get the current voting cycle id', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.startVotingP();
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        assert.strictEqual((await vs.getCurrentVotingCycleId()).toNumber(), 1);
+    });
+
+    it('should get whether there is currently a tie', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        await vs.voteForCandidateP(accounts[1], accounts[0]);
+        await vs.voteForCandidateP(accounts[0], accounts[2]);
+        assert.ok(await vs.isCurrentlyTied());
+    });
+
+    it('should get whether an address has already voted', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        await vs.voteForCandidateP(accounts[1], accounts[1]);
+        assert.ok(await vs.hasAlreadyVoted(accounts[1]));
+        assert.ok(!(await vs.hasAlreadyVoted(accounts[2])));
+    });
+
+    it('should get whether an address can add a candidate', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        assert.ok(await vs.hasAlreadyAddedCandidate(accounts[1]));
+        assert.ok(await vs.hasAlreadyAddedCandidate(accounts[2]));
+        assert.ok(!(await vs.hasAlreadyAddedCandidate(accounts[3])));
+    });
+
+    it('should get the most recent winner', async () => {
+        await vs.addCandidateP(accounts[1], accounts[2]);
+        await vs.startVotingP();
+        assert.strictEqual(await vs.mostRecentWinner(), accounts[1]);
+    });
+
+    it('should get the number of total voting sessions held', async () => {
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.startVotingP();
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.startVotingP();
+        await vs.addCandidateP(accounts[0], accounts[1]);
+        await vs.startVotingP();
+        assert.strictEqual((await vs.totalVoteSessionsHeld()).toNumber(), 3);
+    });
 });
