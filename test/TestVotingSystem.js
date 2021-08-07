@@ -34,7 +34,7 @@ contract('Voting System', async accounts => {
         const numVotesHeld = (await vs.getNumVotesHeld()).toNumber();
         const currentStatus = (await vs.getCurrentStatus()).toNumber();
         assert.strictEqual(numVotesHeld, 1);
-        assert.strictEqual(currentStatus, 2);
+        assert.strictEqual(currentStatus, 1);
     });
 
     it('should allow an address to add a candidate for consideration', async () => {
@@ -77,7 +77,7 @@ contract('Voting System', async accounts => {
         await vs.addCandidateP(accounts[3], accounts[4]);
         await vs.startVotingP();
         await vs.voteForCandidateP(accounts[2], accounts[5]);
-        assert.strictEqual((await vs.getCurrentStatus()).toNumber(), 2);
+        assert.strictEqual((await vs.getCurrentStatus()).toNumber(), 1);
         assert.ok(await vs.getHasVoted(accounts[5]));
     });
 
@@ -138,7 +138,7 @@ contract('Voting System', async accounts => {
         assert.strictEqual(acc1Votes, 3);
         assert.strictEqual(acc2Votes, 3);
         const status = (await vs.getCurrentStatus()).toNumber();
-        assert.strictEqual(status, 2);
+        assert.strictEqual(status, 1);
     });
 
     it('should stop voting and determine a winner', async () => {
@@ -150,7 +150,7 @@ contract('Voting System', async accounts => {
 
         // vote for candidates
         await vs.startVotingP();
-        assert.strictEqual((await vs.getCurrentStatus()).toNumber(), 2);
+        assert.strictEqual((await vs.getCurrentStatus()).toNumber(), 1);
         await vs.voteForCandidateP(accounts[0], accounts[1]);
         await vs.voteForCandidateP(accounts[2], accounts[2]);
         await vs.voteForCandidateP(accounts[2], accounts[3]);

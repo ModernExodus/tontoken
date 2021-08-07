@@ -98,7 +98,7 @@ contract('Tontoken', async accounts => {
         await token.transfer.sendTransaction(accounts[1], 10000, { from: accounts[0] });
         const endStatus = (await token.getVotingStatus.call()).toNumber();
         assert.strictEqual(startStatus, 0);
-        assert.strictEqual(endStatus, 2);
+        assert.strictEqual(endStatus, 1);
     });
 
     it('should end voting if voting has been ongoing for at least ~1 day', async () => {
@@ -113,7 +113,7 @@ contract('Tontoken', async accounts => {
         await token.transfer.sendTransaction(accounts[1], 5000, { from: accounts[0] });
         const endStatus = (await token.getVotingStatus.call()).toNumber();
         assert.strictEqual(startStatus, 0);
-        assert.strictEqual(middleStatus, 2);
+        assert.strictEqual(middleStatus, 1);
         assert.strictEqual(endStatus, 0);
     });
 
