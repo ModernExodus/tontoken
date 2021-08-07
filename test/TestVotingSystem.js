@@ -12,7 +12,7 @@ contract('Voting System', async accounts => {
     it('should not start voting if there are no candidates', async () => {
         const transaction = await vs.startVotingP();
         const transactionLog = transaction.logs[0];
-        const numVotesHeld = (await vs.getNumVotesHeld()).toNumber();
+        const numVotesHeld = (await vs.totalVoteSessionsHeld()).toNumber();
         assert.strictEqual(transactionLog.event, 'VotingPostponed');
         assert.strictEqual(convertHexToAscii(transactionLog.args[0]),  'No candidates');
         assert.strictEqual(numVotesHeld, 0);
@@ -21,7 +21,7 @@ contract('Voting System', async accounts => {
     it('should automatically declare a winner if there is no contest (only 1 candidate)', async () => {
         await vs.addCandidateP(accounts[1], accounts[0]);
         const transactionLog = (await vs.startVotingP()).logs[0];
-        const numVotesHeld = (await vs.getNumVotesHeld()).toNumber();
+        const numVotesHeld = (await vs.totalVoteSessionsHeld()).toNumber();
         assert.strictEqual(transactionLog.event, 'VoteUncontested');
         assert.strictEqual(transactionLog.args[0], accounts[1]);
         assert.strictEqual(numVotesHeld, 1);
@@ -31,7 +31,7 @@ contract('Voting System', async accounts => {
         await vs.addCandidateP(accounts[0], accounts[0]);
         await vs.addCandidateP(accounts[1], accounts[1]);
         await vs.startVotingP();
-        const numVotesHeld = (await vs.getNumVotesHeld()).toNumber();
+        const numVotesHeld = (await vs.totalVoteSessionsHeld()).toNumber();
         const currentStatus = (await vs.getCurrentStatus()).toNumber();
         assert.strictEqual(numVotesHeld, 1);
         assert.strictEqual(currentStatus, 1);
@@ -39,7 +39,7 @@ contract('Voting System', async accounts => {
 
     it('should allow an address to add a candidate for consideration', async () => {
         await vs.addCandidateP(accounts[1], accounts[0]);
-        const candidateAdded = await vs.getIsCandidateP(accounts[1]);
+        const candidateAdded = await vs.getIsCandidate(accounts[1]);
         const allCandidates = await vs.getCandidates();
 
         assert.ok(candidateAdded);
@@ -122,18 +122,18 @@ contract('Voting System', async accounts => {
         let acc0Votes;
         let acc1Votes;
         let acc2Votes;
-        acc0Votes = (await vs.getNumVotes(accounts[0])).toNumber();
-        acc1Votes = (await vs.getNumVotes(accounts[1])).toNumber();
-        acc2Votes = (await vs.getNumVotes(accounts[2])).toNumber();
+        acc0Votes = (await vs.getNumberOfVotes(accounts[0])).toNumber();
+        acc1Votes = (await vs.getNumberOfVotes(accounts[1])).toNumber();
+        acc2Votes = (await vs.getNumberOfVotes(accounts[2])).toNumber();
         assert.strictEqual(acc0Votes, 2);
         assert.strictEqual(acc1Votes, 3);
         assert.strictEqual(acc2Votes, 3);
         const transaction = await vs.stopVotingP();
         const transactionLog = transaction.logs[0];
         assert.strictEqual(transactionLog.event, 'VotingExtended');
-        acc0Votes = (await vs.getNumVotes(accounts[0])).toNumber();
-        acc1Votes = (await vs.getNumVotes(accounts[1])).toNumber();
-        acc2Votes = (await vs.getNumVotes(accounts[2])).toNumber();
+        acc0Votes = (await vs.getNumberOfVotes(accounts[0])).toNumber();
+        acc1Votes = (await vs.getNumberOfVotes(accounts[1])).toNumber();
+        acc2Votes = (await vs.getNumberOfVotes(accounts[2])).toNumber();
         assert.strictEqual(acc0Votes, 2);
         assert.strictEqual(acc1Votes, 3);
         assert.strictEqual(acc2Votes, 3);
