@@ -25,7 +25,7 @@ abstract contract VotingSystem is UniqueKeyGenerator {
     mapping(bytes32 => bool) internal addedProposal;
 
     VotingStatus internal currentStatus;
-    enum VotingStatus { INACTIVE, PAUSE, ACTIVE }
+    enum VotingStatus { INACTIVE, ACTIVE }
     enum StartVotingOutcome { STARTED, UNCONTESTED, NO_CANDIDATES }
     enum StopVotingOutcome { STOPPED, NO_VOTES, TIE }
     address internal latestWinner;
@@ -125,4 +125,54 @@ abstract contract VotingSystem is UniqueKeyGenerator {
     }
 
     function postVoteCleanUp() internal virtual;
+
+    // getters to check voting data
+
+    function getVotingStatus() public view returns (VotingStatus) {
+        return currentStatus;
+    }
+
+    function isVotingActive() public view returns (bool) {
+        return currentStatus == VotingStatus.ACTIVE;
+    }
+
+    function getIsCandidate(address a) public view returns (bool) {
+        return isCandidate[generateKey(a)];
+    }
+
+    function getNumberOfVotes(address a) public view returns (uint256) {
+        return votes[generateKey(a)];
+    }
+
+    function getCurrentLeader() public view returns (address) {
+        return currentVotingCycle.leader;
+    }
+
+    function getCurrentLeaderVoteCount() public view returns (uint256) {
+        return currentVotingCycle.leaderVotes;
+    }
+
+    function getCurrentVotingCycleId() public view returns (uint256) {
+        return currentVotingCycle.id;
+    }
+
+    function isCurrentlyTied() public view returns (bool) {
+        return currentVotingCycle.tied;
+    }
+
+    function isEligibleToVote(address a) public view returns (bool) {
+        return voted[generateKey(a)];
+    }
+
+    function canAddCandidate(address a) public view returns (bool) {
+        return addedProposal[generateKey(a)];
+    }
+
+    function mostRecentWinner() public view returns (address) {
+        return latestWinner;
+    }
+
+    function totalVoteSessionsHeld() public view returns (uint256) {
+        return numVotesHeld;
+    }
 }

@@ -39,7 +39,7 @@ contract('Voting System', async accounts => {
 
     it('should allow an address to add a candidate for consideration', async () => {
         await vs.addCandidateP(accounts[1], accounts[0]);
-        const candidateAdded = await vs.getIsCandidate(accounts[1]);
+        const candidateAdded = await vs.getIsCandidateP(accounts[1]);
         const allCandidates = await vs.getCandidates();
 
         assert.ok(candidateAdded);

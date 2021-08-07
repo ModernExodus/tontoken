@@ -39,7 +39,7 @@ contract VotingSystemProxy is VotingSystem {
         return currentStatus;
     }
 
-    function getIsCandidate(address a) public view returns (bool) {
+    function getIsCandidateP(address a) public view returns (bool) {
         return isCandidate[generateKey(a)];
     }
 

@@ -238,10 +238,6 @@ contract Tontoken is ERC20, VotingSystem {
         executeTransfer(address(this), recipient, balanceOf(address(this)));
     }
 
-    function getVotingStatus() public view returns (VotingStatus) {
-        return currentStatus;
-    }
-
     function postVoteCleanUp() override internal {
         delete numPotentialRecipients;
     }
