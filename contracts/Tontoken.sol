@@ -33,14 +33,18 @@ contract Tontoken is ERC20, VotingSystem {
     event BorksMatched(address indexed from, address indexed to, uint256 amount, uint256 matched);
     
     // constants
-    string constant insufficientFundsMsg = "Insufficient funds to complete the transfer";
+    string constant insufficientFundsMsg = "Insufficient funds to complete the transfer. Perhaps some are locked?";
     string constant cannotSendToZeroMsg = "Funds cannot be burned (sent to the zero address)";
     string constant insufficientAllowanceMsg = "The allowance of the transaction sender is insufficient to complete the transfer";
     string constant zeroDonationMsg = "Donations must be greater than or equal to 1 Bork";
+    string constant voterMinimumMsg = "10000 TONT minimum balance required to vote";
+    string constant proposalMinimumMsg = "50000 TONT minimum balance required to add potential recipients";
+    string constant zeroSpenderMsg = "The zero address cannot be designated as a spender";
+    string constant balanceNotApprovedMsg = "A spender cannot be approved a balance higher than the approver's balance";
 
     constructor(bool publicNet) {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
-        borkMatchRateShift = 6; // ~1.5% (+- 64 borks)
+        borkMatchRateShift = 6; // ~1.5%
         balances[msg.sender] = _totalSupply;
         minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
         minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
@@ -91,8 +95,8 @@ contract Tontoken is ERC20, VotingSystem {
     }
     
     function approve(address _spender, uint256 _value) override public returns (bool) {
-        require(_spender != address(0));
-        require(balances[msg.sender] >= _value);
+        require(_spender != address(0), zeroSpenderMsg);
+        require(balances[msg.sender] >= _value, balanceNotApprovedMsg);
         if (allowed[_spender][msg.sender] != 0) {
             allowed[_spender][msg.sender] = 0;
         }
@@ -140,13 +144,13 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function enterVote(address vote) public {
-        require(balanceOf(msg.sender) >= minVoterThreshold);
+        require(balanceOf(msg.sender) >= minVoterThreshold, voterMinimumMsg);
         lockBorks(msg.sender, minVoterThreshold);
         super.voteForCandidate(vote, msg.sender);
     }
 
     function addBorkPoolRecipient(address recipient) private {
-        require(balanceOf(msg.sender) >= minProposalThreshold);
+        require(balanceOf(msg.sender) >= minProposalThreshold, proposalMinimumMsg);
         require(recipient != address(0));
         lockBorks(msg.sender, minProposalThreshold);
         super.addCandidate(recipient, msg.sender);

@@ -34,15 +34,18 @@ abstract contract VotingSystem is UniqueKeyGenerator {
     event VotingActive(uint256 votingSessionNumber);
     event VotingInactive(address winner, uint256 numVotes);
     event VotingExtended();
-    event VotingPostponed(bytes32 reason);
+    event VotingPostponed(string reason);
     event VoteUncontested(address winner);
     event VoteCounted(address indexed voter, address indexed vote);
+    event CandidateAdded(address indexed candidate, address indexed addedBy);
 
     // constants
     string constant duplicateCandidateMsg = "The proposed candidate has already been added.";
     string constant alreadyAddedCandidateMsg = "The sender's address has already proposed a candidate";
     string constant alreadyVotedMsg = "The sender's address has already voted this cycle";
     string constant noMatchingCandidateMsg = "No matching candidate exists this voting cycle";
+    string constant votingInactiveMsg = "Votes cannot be cast while voting state is INACTIVE (0)";
+    string constant votingActiveMsg = "Candidates cannot be proposed while voting state is ACTIVE (2)";
 
     // START -> voting is active
     function startVoting() internal returns (StartVotingOutcome outcome, address winner) {
@@ -84,7 +87,7 @@ abstract contract VotingSystem is UniqueKeyGenerator {
     }
 
     function addCandidate(address candidate, address proposer) internal {
-        assert(currentStatus == VotingStatus.INACTIVE);
+        require(currentStatus == VotingStatus.INACTIVE, votingActiveMsg);
         bytes32 proposerKey = generateKey(proposer);
         bytes32 candidateKey = generateKey(candidate);
         require(!addedProposal[proposerKey], alreadyAddedCandidateMsg);
@@ -92,10 +95,11 @@ abstract contract VotingSystem is UniqueKeyGenerator {
         isCandidate[candidateKey] = true;
         addedProposal[proposerKey] = true;
         currentVotingCycle.candidates.push(candidate);
+        emit CandidateAdded(candidate, proposer);
     }
 
     function voteForCandidate(address vote, address voter) internal {
-        assert(currentStatus == VotingStatus.ACTIVE);
+        require(currentStatus == VotingStatus.ACTIVE, votingInactiveMsg);
         bytes32 voteKey = generateKey(vote);
         bytes32 voterKey = generateKey(voter);
         require(!voted[voterKey], alreadyVotedMsg);
