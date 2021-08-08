@@ -44,7 +44,7 @@ contract Tontoken is ERC20, VotingSystem {
 
     constructor(bool publicNet) {
         _totalSupply = 1000000000000; // initial supply of 1,000,000 Tontokens
-        borkMatchRateShift = 6; // ~1.5%
+        borkMatchRateShift = 6; // ~1.5% (+- 64 borks)
         balances[msg.sender] = _totalSupply;
         minVoterThreshold = 10000000000; // at least 10,000 Tontokens to vote
         minProposalThreshold = 50000000000; // at least 50,000 Tontokens to propose
@@ -143,10 +143,6 @@ contract Tontoken is ERC20, VotingSystem {
         _totalSupply += numBorks;
     }
 
-    function borkPool() public view returns (uint256) {
-        return balanceOf(address(this));
-    }
-
     function enterVote(address vote) public {
         require(balanceOf(msg.sender) >= minVoterThreshold, voterMinimumMsg);
         lockBorks(msg.sender, minVoterThreshold);
@@ -175,10 +171,6 @@ contract Tontoken is ERC20, VotingSystem {
         numPotentialRecipients++;
     }
 
-    function getLockedBorks(address owner) public view returns (uint256) {
-        return lockedBorks[generateKey(owner)];
-    }
-
     function lockBorks(address owner, uint256 toLock) private {
         lockedBorks[generateKey(owner)] += toLock;
     }
@@ -189,26 +181,6 @@ contract Tontoken is ERC20, VotingSystem {
             return 0;
         }
         return balances[owner] - lockedBorks[generatedOwnerKey];
-    }
-
-    function getVotingMinimum() public view returns (uint256) {
-        return minVoterThreshold;
-    }
-
-    function getProposalMinimum() public view returns (uint256) {
-        return minProposalThreshold;
-    }
-
-    function getBorkPoolCandidates() public view returns (BorkPoolRecipient[] memory) {
-        BorkPoolRecipient[] memory allRecipients = new BorkPoolRecipient[](numPotentialRecipients);
-        for (uint256 i; i < numPotentialRecipients; i++) {
-            allRecipients[i] = potentialRecipients[generateKey(i)];
-        }
-        return allRecipients;
-    }
-
-    function getBorkPoolCandidateAddresses() public view returns (address[] memory) {
-        return currentVotingCycle.candidates;
     }
 
     // 1 block every ~15 seconds -> 40320 blocks -> ~ 7 days
@@ -242,10 +214,6 @@ contract Tontoken is ERC20, VotingSystem {
         executeTransfer(address(this), recipient, balanceOf(address(this)));
     }
 
-    function getVotingStatus() public view returns (VotingStatus) {
-        return currentStatus;
-    }
-
     function postVoteCleanUp() override internal {
         delete numPotentialRecipients;
     }
@@ -254,5 +222,51 @@ contract Tontoken is ERC20, VotingSystem {
         require(value != 0, zeroDonationMsg);
         validateTransfer(msg.sender, address(this), value);
         executeTransfer(msg.sender, address(this), value);
+    }
+
+    // useful getters to help interaction with Tontoken
+
+    function getLockedBorks(address owner) public view returns (uint256) {
+        return lockedBorks[generateKey(owner)];
+    }
+
+    function getBorkPoolCandidateAddresses() public view returns (address[] memory) {
+        return currentVotingCycle.candidates;
+    }
+
+    function getBorkPoolCandidates() public view returns (BorkPoolRecipient[] memory) {
+        BorkPoolRecipient[] memory allRecipients = new BorkPoolRecipient[](numPotentialRecipients);
+        for (uint256 i; i < numPotentialRecipients; i++) {
+            allRecipients[i] = potentialRecipients[generateKey(i)];
+        }
+        return allRecipients;
+    }
+
+    function borkPool() public view returns (uint256) {
+        return balanceOf(address(this));
+    }
+
+    function getVotingMinimum() public view returns (uint256) {
+        return minVoterThreshold;
+    }
+
+    function getProposalMinimum() public view returns (uint256) {
+        return minProposalThreshold;
+    }
+
+    function totalBorksMatched() public view returns (uint256) {
+        return allTimeMatchAmount;
+    }
+
+    function getLastVotingBlock() public view returns (uint256) {
+        return lastVotingBlock;
+    }
+
+    function getActiveVotingLength() public view returns (uint256) {
+        return numBlocks1Day;
+    }
+
+    function getInactiveVotingLength() public view returns (uint256) {
+        return numBlocks7Days;
     }
 }

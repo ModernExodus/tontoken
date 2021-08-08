@@ -15,13 +15,13 @@ contract('UniqueKeyGenerator', async accounts => {
 
     it('should have a key collision if it receives the same input before changing salt', async () => {
         for (let i = 0; i < 5; i++) {
-            const genKey = await keyGenerator.generateKey.call(accounts[i]);
+            const genKey = await keyGenerator.generateKeyP.call(accounts[i]);
             if (keySet.has(genKey)) {
                 assert.fail('Key collision happened prematurely');
             }
             keySet.add(genKey);
         }
-        const dupKey = await keyGenerator.generateKey.call(accounts[0]);
+        const dupKey = await keyGenerator.generateKeyP.call(accounts[0]);
         assert.ok(keySet.has(dupKey));
     });
 
@@ -29,7 +29,7 @@ contract('UniqueKeyGenerator', async accounts => {
         const addressList = ethAddresses.concat(accounts);
         for (let i = 0; i < numSaltShakes; i++) {
             for (const address of addressList) {
-                const genKey = await keyGenerator.generateKey.call(address);
+                const genKey = await keyGenerator.generateKeyP.call(address);
                 if (keySet.has(genKey)) {
                     assert.fail('Key collision');
                 }
@@ -42,7 +42,7 @@ contract('UniqueKeyGenerator', async accounts => {
     it('should not have a uint256 key collision as it changes salt', async () => {
         for (let i = 0; i < numSaltShakes; i++) {
             for (let j = 0; j < 50; j++) {
-                const genKey = await keyGenerator.methods['generateKey(uint256)'].call(j);
+                const genKey = await keyGenerator.methods['generateKeyP(uint256)'].call(j);
                 if (keySet.has(genKey)) {
                     assert.fail('Key collision');
                 }
