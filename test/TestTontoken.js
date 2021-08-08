@@ -307,4 +307,72 @@ contract('Tontoken', async accounts => {
         }
         assert.strictEqual(borkPool, expectedBorkPool);
     });
+
+    it('should get the locked borks of an address', async () => {
+        await token.proposeBorkPoolRecipient(accounts[0]);
+        const acc0Locked = (await token.getLockedBorks(accounts[0])).toNumber();
+        assert.strictEqual(acc0Locked, convertToBorks(50000));
+    });
+
+    it('should get the bork pool candidate addresses', async () => {
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[0]);
+        await token.transfer(accounts[1], convertToBorks(50000));
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[1] });
+        const candidates = await token.getBorkPoolCandidateAddresses();
+        assert.strictEqual(candidates[0], accounts[0]);
+        assert.strictEqual(candidates[1], accounts[1]);
+    });
+
+    it('should get the bork pool candidates', async () => {
+        await token.proposeBorkPoolRecipient(accounts[1]);
+        await token.transfer(accounts[2], convertToBorks(50000));
+        const overloaded = 'proposeBorkPoolRecipient(address,string,string,string)';
+        await token.methods[overloaded].sendTransaction(accounts[2], 'Acc2', 'Acc2', 'Acc2.com', { from: accounts[2] });
+        const candidates = await token.getBorkPoolCandidates();
+        assert.strictEqual(candidates[0].addr, accounts[1]);
+        assert.strictEqual(candidates[1].addr, accounts[2]);
+        assert.strictEqual(candidates[1].name, 'Acc2');
+        assert.strictEqual(candidates[1].description, 'Acc2');
+        assert.strictEqual(candidates[1].website, 'Acc2.com');
+    });
+
+    it('should get the balance of the bork pool', async () => {
+        await token.transfer(accounts[1], convertToBorks(11111));
+        const borkPool = (await token.borkPool()).toNumber();
+        assert.strictEqual(borkPool, calculateBorkMatch(convertToBorks(11111)));
+    });
+
+    it('should get the voting minimum', async () => {
+        const minimum = (await token.getVotingMinimum()).toNumber();
+        assert.strictEqual(minimum, convertToBorks(10000));
+    });
+
+    it('should get the proposal minimum', async () => {
+        const minimum = (await token.getProposalMinimum()).toNumber();
+        assert.strictEqual(minimum, convertToBorks(50000));
+    });
+
+    it('should get the total borks matched', async () => {
+        await token.transfer(accounts[1], convertToBorks(10000));
+        await token.transfer(accounts[2], convertToBorks(5000));
+        await token.transfer(accounts[3], convertToBorks(99675));
+        const totalMatched = (await token.totalBorksMatched()).toNumber();
+        assert.strictEqual(totalMatched, calculateBorkMatch(convertToBorks(114675)));
+    });
+
+    it('should get the last voting block', async () => {
+        const lastBlockNum = await web3.eth.getBlockNumber();
+        const lastVotingBlock = (await token.getLastVotingBlock()).toNumber();
+        assert.strictEqual(lastVotingBlock, lastBlockNum);
+    });
+
+    it('should get the active voting length in blocks', async () => {
+        const length = (await token.getActiveVotingLength()).toNumber();
+        assert.strictEqual(length, 1);
+    });
+
+    it('should get the inactive voting length in blocks', async () => {
+        const length = (await token.getInactiveVotingLength()).toNumber();
+        assert.strictEqual(length, 7);
+    });
 });
