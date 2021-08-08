@@ -5,7 +5,7 @@ Inspired by my adopted dog Tonto with the original goal of supporting animal she
 | Environment              | Address     |
 | -----------              | ----------- |
 | Mainnet                  | TBD         |
-| Ropsten Testnet          | [0x8B53407e7B61c8E2c5811E313f4943b2768982a8](https://ropsten.etherscan.io/address/0x8B53407e7B61c8E2c5811E313f4943b2768982a8) |
+| Ropsten Testnet          | [0x8B53407e7B61c8E2c5811E313f4943b2768982a8](https://ropsten.etherscan.io/token/0x8B53407e7B61c8E2c5811E313f4943b2768982a8) |
 
 ## About
 Tontoken bridges the gap between crypto daytraders and those who are struggling throughout the world. Why not help others while raking in those profits? __Tontoken can be traded just like any other ERC20 token over the Ethereum blockchain, but has charitable contributions built into its protocol. These contributions have no impact on Tontoken transactions, so everyone can keep their profits while simultaneously helping others.__ Holders of Tontoken are entitled (but NOT required) to suggest and vote on organizations that receive contributions. The Tontoken protocol is entirely decentralized, so users have complete control.
@@ -24,7 +24,7 @@ Tonto is my adopted dog and the inspiration for Tontoken. He was a neglected lit
 </div>
 
 ## Tontoken Protocol
-* Starts with an initial supply of 1,000,000? TONT
+* Starts with an initial supply of 1,000,000 TONT
 * There is no supply cap
 * Each Tontoken can be divided into 1,000,000 Borks (my adopted dog loves barking)
 * The contract matches 1.5% of every transaction amount by minting the equivalent amount in new Borks (the "Bork Tax")
