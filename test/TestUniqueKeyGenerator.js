@@ -3,7 +3,7 @@ const { ethAddresses } = require('./address-data.js');
 const KeyGenerator = artifacts.require('UniqueKeyGeneratorProxy');
 
 // expect 2nd and 3rd tests to take about 1.5 minutes per 10 numSaltChanges
-const numSaltShakes = 25;
+const numSaltShakes = 5;
 contract('UniqueKeyGenerator', async accounts => {
     let keyGenerator;
     let keySet;
