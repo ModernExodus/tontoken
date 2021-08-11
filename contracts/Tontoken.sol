@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+// https://github.com/ModernExodus/tontoken
+
 import "./IERC20.sol";
 import "./VotingSystem.sol";
 
