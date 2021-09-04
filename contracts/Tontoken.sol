@@ -153,6 +153,7 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function enterDelegatedVote(address voter, address vote) public {
+        require(delegatedVoters[generateKey(voter)] == msg.sender);
         require(balanceOf(voter) >= minVoterThreshold, voterMinimumMsg);
         lockBorks(voter, minVoterThreshold);
         super.voteForCandidate(vote, voter);
