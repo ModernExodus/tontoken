@@ -34,6 +34,8 @@ contract Tontoken is ERC20, VotingSystem {
     uint256 private numBlocks1Day;
 
     event BorksMatched(address indexed from, address indexed to, uint256 amount, uint256 matched);
+    event VotingRightsDelegated(address indexed delegate, address indexed voter);
+    event DelegatedRightsRemoved(address indexed delegate, address indexed voter);
     
     // constants
     string constant insufficientFundsMsg = "Insufficient funds to complete the transfer. Perhaps some are locked?";
@@ -161,10 +163,13 @@ contract Tontoken is ERC20, VotingSystem {
 
     function delegateVoter(address delegate) public {
         delegatedVoters[generateKey(msg.sender)] = delegate;
+        emit VotingRightsDelegated(delegate, msg.sender);
     }
 
     function dischargeDelegatedVoter() public {
-        delete delegatedVoters[generateKey(msg.sender)];
+        bytes32 delegatedKey = generateKey(msg.sender);
+        emit DelegatedRightsRemoved(delegatedVoters[delegatedKey], msg.sender);
+        delete delegatedVoters[delegatedKey];
     }
 
     function addBorkPoolRecipient(address recipient) private {
