@@ -117,6 +117,71 @@ contract('Tontoken', async accounts => {
         assert.strictEqual(endStatus, 0);
     });
 
+    it('should allow an address to delegate its vote to another address', async () => {
+        await token.transfer.sendTransaction(accounts[1], convertToBorks(50000), { from: accounts[0] });
+        await token.transfer.sendTransaction(accounts[3], convertToBorks(50000), { from: accounts[0] });
+        await token.delegateVoter.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[4], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[5], { from: accounts[3] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 10, { from: accounts[0] });
+        await token.enterDelegatedVote.sendTransaction(accounts[1], accounts[4], { from: accounts[2] });
+        const lockedBorksAcc1 = (await token.getLockedBorks(accounts[1])).toNumber();
+        const lockedBorksAcc2 = (await token.getLockedBorks(accounts[2])).toNumber();
+        const leader = await token.getCurrentLeader();
+        const acc1Voted = await token.hasAlreadyVoted(accounts[1]);
+        const acc2Voted = await token.hasAlreadyVoted(accounts[2]);
+        assert.strictEqual(lockedBorksAcc1, convertToBorks(10000));
+        assert.strictEqual(lockedBorksAcc2, 0);
+        assert.strictEqual(leader, accounts[4]);
+        assert.ok(acc1Voted);
+        assert.ok(!acc2Voted);
+    });
+
+    it('should not allow both an address and its delegate to vote', async () => {
+        await token.transfer.sendTransaction(accounts[1], convertToBorks(50000), { from: accounts[0] });
+        await token.transfer.sendTransaction(accounts[3], convertToBorks(50000), { from: accounts[0] });
+        await token.delegateVoter.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[4], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[5], { from: accounts[3] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 10, { from: accounts[0] });
+        await token.enterVote.sendTransaction(accounts[4], { from: accounts[1] });
+        await assertVmException(token.enterDelegatedVote, accounts[1], accounts[4], { from: accounts[2] });
+    });
+
+    it('should not allow both a delegate and its delegator to vote', async () => {
+        await token.transfer.sendTransaction(accounts[1], convertToBorks(50000), { from: accounts[0] });
+        await token.transfer.sendTransaction(accounts[3], convertToBorks(50000), { from: accounts[0] });
+        await token.delegateVoter.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[4], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[5], { from: accounts[3] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 10, { from: accounts[0] });
+        await token.enterDelegatedVote.sendTransaction(accounts[1], accounts[4], { from: accounts[2] });
+        await assertVmException(token.enterVote, accounts[4], { from: accounts[1] });
+    });
+
+    it('should not allow an address to vote on behalf of an address without permission', async () => {
+        await token.transfer.sendTransaction(accounts[1], convertToBorks(50000), { from: accounts[0] });
+        await token.transfer.sendTransaction(accounts[3], convertToBorks(50000), { from: accounts[0] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 10, { from: accounts[0] });
+        await assertVmException(token.enterDelegatedVote, accounts[1], accounts[4], { from: accounts[2] });
+    });
+
+    it('should allow an address to revoke a delegate right to vote', async () => {
+        await token.transfer.sendTransaction(accounts[1], convertToBorks(50000), { from: accounts[0] });
+        await token.transfer.sendTransaction(accounts[3], convertToBorks(50000), { from: accounts[0] });
+        await token.delegateVoter.sendTransaction(accounts[2], { from: accounts[1] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[4], { from: accounts[0] });
+        await token.proposeBorkPoolRecipient.sendTransaction(accounts[5], { from: accounts[3] });
+        await mineBlocks(7);
+        await token.transfer.sendTransaction(accounts[1], 10, { from: accounts[0] });
+        await token.dischargeDelegatedVoter.sendTransaction({ from: accounts[1] });
+        await assertVmException(token.enterDelegatedVote, accounts[1], accounts[4], { from: accounts[2] });
+    });
+
     it('should distribute the bork pool to the uncontested winner if there was only 1 candidate', async () => {
         await token.proposeBorkPoolRecipient.sendTransaction(accounts[1], { from: accounts[0] });
         await token.transfer.sendTransaction(accounts[2], 5000, { from: accounts[0] });
