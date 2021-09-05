@@ -63,7 +63,7 @@ Tonto is my adopted dog and the inspiration for Tontoken. He was a neglected lit
     * Locked TONT are still included in an address's available balance, but are not sendable until unlocked
 * Ex: An address with 100,000 TONT suggests a candidate to receive the Bork Pool 2 days before voting begins. This address still has 100,000 TONT, but is only able to send up to 50,000. When voting begins, this address votes for a candidate. This address can now only send up to 40,000 TONT. As soon as voting ends, the address is able to send up to 100,000 TONT once again.
 
-## Economics
+## Tokenomics
 * Tontoken's main voting functionality and "Bork Pool" are directly reliant on the volume of transactions. As a result, it is not meant to be held for long periods of time, but rather as a means of payment for goods and services and daytrading :rainbow:
     * Remember 1.5% of all transactions in an 8-day period (the Bork Pool still increases while voting is ACTIVE) will be added to the total supply at the end of each voting session
 
