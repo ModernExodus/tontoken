@@ -28,7 +28,7 @@ contract Tontoken is ERC20, VotingSystem {
     uint256 private minVoterThreshold;
     uint256 private minProposalThreshold;
     mapping(bytes32 => uint256) private lockedBorks;
-    mapping(bytes32 => address) private delegatedVoters;
+    mapping(address => address) private delegatedVoters;
     uint256 private lastVotingBlock; // block number of recent voting events
     uint256 private numBlocks7Days;
     uint256 private numBlocks1Day;
@@ -155,21 +155,20 @@ contract Tontoken is ERC20, VotingSystem {
     }
 
     function enterDelegatedVote(address voter, address vote) public {
-        require(delegatedVoters[generateKey(voter)] == msg.sender);
+        require(delegatedVoters[voter] == msg.sender);
         require(balanceOf(voter) >= minVoterThreshold, voterMinimumMsg);
         lockBorks(voter, minVoterThreshold);
         super.voteForCandidate(vote, voter);
     }
 
     function delegateVoter(address delegate) public {
-        delegatedVoters[generateKey(msg.sender)] = delegate;
+        delegatedVoters[msg.sender] = delegate;
         emit VotingRightsDelegated(delegate, msg.sender);
     }
 
     function dischargeDelegatedVoter() public {
-        bytes32 delegatedKey = generateKey(msg.sender);
-        emit DelegatedRightsRemoved(delegatedVoters[delegatedKey], msg.sender);
-        delete delegatedVoters[delegatedKey];
+        emit DelegatedRightsRemoved(delegatedVoters[msg.sender], msg.sender);
+        delete delegatedVoters[msg.sender];
     }
 
     function addBorkPoolRecipient(address recipient) private {
