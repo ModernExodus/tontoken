@@ -15,6 +15,7 @@ if (network !== 'mainnet' && network !== 'ropsten') {
 
 console.log(`Deploying Tontoken to ${network} blockchain...`);
 deploySmartContract(getWeb3Instance(network), Tontoken.bytecode, Tontoken.abi, {
+    network: network,
     maxGas: maxGas,
     maxFeePerGas: maxFeePerGas,
     maxPriorityFeePerGas: maxPriorityFeePerGas
@@ -55,10 +56,12 @@ async function deploySmartContract(web3, bytecode, abi, options) {
         nonce: web3.utils.toHex(await web3.eth.getTransactionCount(publicKey)),
         maxFeePerGas: web3.utils.toHex(options.maxFeePerGas),
         maxPriorityFeePerGas: web3.utils.toHex(options.maxPriorityFeePerGas),
-        chainId: web3.currentProvider.host.indexOf('mainnet') !== -1 ? '0x01' : '0x03',
+        chainId: options.network === 'mainnet' ? '0x01' : '0x03',
         type: '0x02'
     };
-    const unsignedTransaction = FeeMarketEIP1559Transaction.fromTxData(rawTransaction, {chain: Chain.Ropsten, hardfork: Hardfork.London});
+
+    const unsignedTransaction = FeeMarketEIP1559Transaction.fromTxData(rawTransaction, 
+        {chain: options.network === 'mainnet' ? Chain.Mainnet : Chain.Ropsten, hardfork: Hardfork.London});
     const signedTransaction = unsignedTransaction.sign(Buffer.from(privateKey, 'hex'));
 
     await web3.eth.sendSignedTransaction('0x' + signedTransaction.serialize().toString('hex'), (err, hash) => {
