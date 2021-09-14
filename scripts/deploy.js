@@ -4,13 +4,21 @@ const { FeeMarketEIP1559Transaction } = require('@ethereumjs/tx');
 const { projectId, privateKey, publicKey } = require('../secrets.js');
 const Tontoken = require('../build/contracts/Tontoken.json');
 
-const network = process.argv.slice(2)[0].toLowerCase();
+const parameters = process.argv.slice(2);
+const network = parameters[0].toLowerCase();
+const maxGas = parseInt(parameters[1] || 5000000, 10);
+const maxFeePerGas = parseInt(parameters[2] || 50e9, 10);
+const maxPriorityFeePerGas = parseInt(parameters[3] || 1e9, 10);
 if (network !== 'mainnet' && network !== 'ropsten') {
     throw new Error('Unsupported network ', network);
 }
 
 console.log(`Deploying Tontoken to ${network} blockchain...`);
-deploySmartContract(getWeb3Instance(network), Tontoken.bytecode, Tontoken.abi).then(() => {
+deploySmartContract(getWeb3Instance(network), Tontoken.bytecode, Tontoken.abi, {
+    maxGas: maxGas,
+    maxFeePerGas: maxFeePerGas,
+    maxPriorityFeePerGas: maxPriorityFeePerGas
+}).then(() => {
     console.log('Deployment completed');
     process.exit(0);
 }, (err) => {
@@ -23,7 +31,7 @@ function getWeb3Instance(network) {
     return new Web3(new Web3.providers.HttpProvider(`https://${network}.infura.io/v3/${projectId}`));
 }
 
-async function deploySmartContract(web3, bytecode, abi) {
+async function deploySmartContract(web3, bytecode, abi, options) {
     // create deployment transaction
     const tontokenContract = new web3.eth.Contract(abi);
     const tontokenCreateTrx = tontokenContract.deploy({
@@ -31,12 +39,22 @@ async function deploySmartContract(web3, bytecode, abi) {
         arguments: [true]
     });
 
+    let gasLimit;
+    const gasEstimate = await tontokenCreateTrx.estimateGas();
+    if (gasEstimate > options.maxGas) {
+        throw new Error(`Estimated gas (${gasEstimate}) is higher than max gas (${options.maxGas})`);
+    } else if (options.maxGas - gasEstimate < 100000) {
+        throw new Error(`Estimated gas (${gasEstimate}) is within 100000 of the specified max gas (${options.maxGas})`);
+    } else {
+        gasLimit = gasEstimate + 100000;
+    }
+
     const rawTransaction = {
         data: tontokenCreateTrx.encodeABI(),
-        gasLimit: web3.utils.toHex(5000000),
+        gasLimit: web3.utils.toHex(gasLimit),
         nonce: web3.utils.toHex(await web3.eth.getTransactionCount(publicKey)),
-        maxFeePerGas: web3.utils.toHex(50e9),
-        maxPriorityFeePerGas: web3.utils.toHex(10e9),
+        maxFeePerGas: web3.utils.toHex(options.maxFeePerGas),
+        maxPriorityFeePerGas: web3.utils.toHex(options.maxPriorityFeePerGas),
         chainId: web3.currentProvider.host.indexOf('mainnet') !== -1 ? '0x01' : '0x03',
         type: '0x02'
     };

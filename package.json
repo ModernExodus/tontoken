@@ -9,6 +9,8 @@
   "scripts": {
     "compile": "truffle compile",
     "compile:all": "truffle compile --all",
+    "deploy:ropsten": "node ./scripts/deploy.js ropsten",
+    "deploy:mainnet": "node ./scripts/deploy.js mainnet",
     "migrate:develop": "truffle migrate --network develop",
     "migrate:ganache": "truffle migrate --network ganacheDevelopment",
     "migrate:develop:reset": "truffle migrate --reset --network develop",
