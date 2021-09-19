@@ -9,6 +9,8 @@
   "scripts": {
     "compile": "truffle compile",
     "compile:all": "truffle compile --all",
+    "deploy:ropsten": "node ./scripts/deploy.js ropsten",
+    "deploy:mainnet": "node ./scripts/deploy.js mainnet",
     "migrate:develop": "truffle migrate --network develop",
     "migrate:ganache": "truffle migrate --network ganacheDevelopment",
     "migrate:develop:reset": "truffle migrate --reset --network develop",
@@ -37,7 +39,9 @@
   },
   "homepage": "https://github.com/ModernExodus/tontoken#readme",
   "devDependencies": {
-    "@truffle/hdwallet-provider": "^1.4.2",
-    "truffle": "^5.4.2"
+    "@ethereumjs/tx": "^3.3.0",
+    "@truffle/hdwallet-provider": "^1.5.0",
+    "truffle": "^5.4.2",
+    "web3": "^1.5.2"
   }
 }
