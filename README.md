@@ -5,7 +5,7 @@ Inspired by my adopted dog Tonto with the original goal of supporting animal she
 | Environment              | Address     |
 | -----------              | ----------- |
 | Mainnet                  | TBD         |
-| Ropsten Testnet          | [0x404e94e2AEeE0cD4518298F934Efb2C882c2da89](https://ropsten.etherscan.io/token/0x8B53407e7B61c8E2c5811E313f4943b2768982a8) |
+| Ropsten Testnet          | [0x404e94e2AEeE0cD4518298F934Efb2C882c2da89](https://ropsten.etherscan.io/address/0x404e94e2AEeE0cD4518298F934Efb2C882c2da89) |
 
 ## About
 Tontoken bridges the gap between crypto daytraders and those who are struggling throughout the world. Why not help others while raking in those profits? __Tontoken can be traded just like any other ERC20 token over the Ethereum blockchain, but has charitable contributions built into its protocol. These contributions have no impact on Tontoken transactions, so everyone can keep their profits while simultaneously helping others.__ Holders of Tontoken are entitled (but NOT required) to suggest and vote on organizations that receive contributions. The Tontoken protocol is entirely decentralized, so users have complete control.
